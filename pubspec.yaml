@@ -1,0 +1,35 @@
+name: first_app
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # ── Firebase (v5 - متوافق مع بعض) ──────────────────────────
+  firebase_core: ^3.13.0
+  firebase_auth: ^5.5.2
+  cloud_firestore: ^5.6.6
+  firebase_storage: ^12.4.5
+
+  # ── باقي الحزم ───────────────────────────────────────────────
+  cupertino_icons: ^1.0.8
+  google_generative_ai: ^0.4.7
+  http: ^1.6.0
+  file_picker: ^8.0.0+1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/image/

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "754469119629",
+    "project_id": "jurisdz-v5",
+    "storage_bucket": "jurisdz-v5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:754469119629:android:b1860a1f3cd61edf4864c4",
+        "android_client_info": {
+          "package_name": "com.example.first_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBh6bmdtki-Rdw4Z46GdTk1CWSp75zWVZU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
