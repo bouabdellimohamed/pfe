@@ -33,6 +33,7 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
     'Droit familial', 'Droit pénal', 'Droit commercial',
     'Droit civil', 'Droit immobilier', 'Droit administratif',
     'Droit du travail', 'Droit des sociétés', 'Droit fiscal',
+    'Propriété Intellectuelle',
   ];
   final List<String> _selected = [];
 

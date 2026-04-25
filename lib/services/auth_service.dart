@@ -133,16 +133,36 @@ class AuthService {
     required String password,
   }) async {
     try {
-      await _auth.signInWithEmailAndPassword(email: email, password: password);
+      final cred = await _auth.signInWithEmailAndPassword(
+        email: email, password: password);
+      final uid = cred.user!.uid;
+
+      // ✅ تحقق من نوع الحساب — لا نسمح للمحامي بالدخول عبر مدخل المستخدم
+      final lawyerDoc = await _firestore.collection('lawyers').doc(uid).get();
+      if (lawyerDoc.exists) {
+        await _auth.signOut();
+        return 'Ce compte est un compte avocat.\nUtilisez la connexion avocat.';
+      }
+
+      final userDoc = await _firestore.collection('users').doc(uid).get();
+      if (!userDoc.exists) {
+        await _auth.signOut();
+        return 'Compte introuvable. Veuillez créer un compte.';
+      }
+      if ((userDoc.data()?['disabled'] ?? false) == true) {
+        await _auth.signOut();
+        return 'Ce compte est désactivé. Contactez le support.';
+      }
+
       return null;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') return 'Aucun utilisateur trouvé';
       if (e.code == 'wrong-password') return 'Mot de passe incorrect';
       if (e.code == 'invalid-credential')
         return 'Email ou mot de passe incorrect';
-      return 'Erreur: ${e.message}';
+      return 'Erreur: \${e.message}';
     } catch (e) {
-      return 'Erreur inattendue: $e';
+      return 'Erreur inattendue: \$e';
     }
   }
 
@@ -214,14 +234,17 @@ class AuthService {
     });
   }
 
-  // ── الاستشارات المشتركة (استشارات المستخدمين الآخرين)
+  // ── الاستشارات المشتركة — تُظهر استشارات الآخرين فقط (ليس استشاراته هو)
   Stream<List<ConsultationModel>> getOtherUsersConsultations(String userId) {
     return _firestore
         .collection('consultations')
-        .where('userId', isNotEqualTo: userId)
         .snapshots()
         .map((s) {
-      final list = s.docs.map(ConsultationModel.fromFirestore).toList();
+      // ✅ نفلتر في الكود: لا يرى استشاراته الخاصة ولا الاستشارات التي أجاب عليها
+      final list = s.docs
+          .map(ConsultationModel.fromFirestore)
+          .where((c) => c.userId != userId && c.lawyerId != userId)
+          .toList();
       list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return list;
     });
@@ -240,6 +263,8 @@ class AuthService {
       'status': 'answered',
       'answeredAt': FieldValue.serverTimestamp(),
     });
+    // ✅ زيادة activityPoints عند الرد على استشارة (+5)
+    await _updateLawyerActivity(lawyerId, activityDelta: 5);
   }
 
   // ── الطلبات (Requests) ───────────────────────────────────────
@@ -264,13 +289,26 @@ class AuthService {
     });
   }
 
-  Stream<List<RequestModel>> getOpenRequests() {
+  // ✅ يجلب الطلبات المتوافقة مع تخصصات المحامي فقط
+  Stream<List<RequestModel>> getOpenRequests({List<String>? lawyerSpecialities}) {
     return _firestore
         .collection('requests')
         .where('status', isEqualTo: 'open')
         .snapshots()
         .map((s) {
-      final list = s.docs.map(RequestModel.fromFirestore).toList();
+      var list = s.docs.map(RequestModel.fromFirestore).toList();
+
+      // فلترة بالتخصص إذا توفرت قائمة تخصصات المحامي
+      if (lawyerSpecialities != null && lawyerSpecialities.isNotEmpty) {
+        list = list.where((r) {
+          final reqType = r.type.toLowerCase().trim();
+          return lawyerSpecialities.any((spec) =>
+              spec.toLowerCase().trim() == reqType ||
+              reqType.contains(spec.toLowerCase().trim()) ||
+              spec.toLowerCase().trim().contains(reqType));
+        }).toList();
+      }
+
       list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return list;
     });
@@ -292,6 +330,48 @@ class AuthService {
     await _firestore.collection('requests').doc(requestId).update({
       'respondedLawyerIds': FieldValue.arrayUnion([lawyerId]),
     });
+    // ✅ زيادة activityPoints عند قبول طلب (+3)
+    await _updateLawyerActivity(lawyerId, activityDelta: 3);
+  }
+
+  // ── تحديث نقاط النشاط وإعادة حساب finalScore ──────────────────
+  Future<void> _updateLawyerActivity(String lawyerId, {required int activityDelta}) async {
+    try {
+      final doc = await _firestore.collection('lawyers').doc(lawyerId).get();
+      if (!doc.exists) return;
+      final d = doc.data()!;
+
+      final newActivity = ((d['activityPoints'] ?? 0) as int) + activityDelta;
+      final clampedActivity = newActivity.clamp(0, 100);
+
+      // حساب responseRate: نسبة الطلبات التي ردّ عليها
+      final totalRequests = await _firestore.collection('requests')
+          .where('respondedLawyerIds', arrayContains: lawyerId).get();
+      final responseRate = totalRequests.docs.length > 0
+          ? (totalRequests.docs.length / (totalRequests.docs.length + 1.0)).clamp(0.0, 1.0)
+          : 0.0;
+
+      // إعادة حساب finalScore
+      final rating = (d['rating'] ?? 0.0).toDouble();
+      final reviewCount = (d['reviewCount'] ?? 0) as int;
+      final experience = (d['experience'] ?? 0) as int;
+
+      final ratingScore   = (rating / 5.0) * 35;
+      final expScore      = (experience.clamp(0, 20) / 20.0) * 25;
+      final reviewScore   = (reviewCount.clamp(0, 50) / 50.0) * 10;
+      final activityScore = (clampedActivity / 100.0) * 20;
+      final responseScore = responseRate * 10;
+      final newScore = double.parse(
+          (ratingScore + expScore + reviewScore + activityScore + responseScore).toStringAsFixed(1));
+
+      await _firestore.collection('lawyers').doc(lawyerId).update({
+        'activityPoints': clampedActivity,
+        'responseRate': double.parse(responseRate.toStringAsFixed(3)),
+        'finalScore': newScore,
+      });
+    } catch (e) {
+      print('Error updating lawyer activity: \$e');
+    }
   }
 
   Future<String> getOrCreateConversationIdForRequest({
@@ -381,10 +461,13 @@ class AuthService {
           daira: daira,
           commune: commune,
         );
+        // ✅ احسب finalScore الأولي بناءً على الخبرة
+        final expScore = ((experience ?? 0).clamp(0, 20) / 20.0) * 25;
+        final initialScore = double.parse(expScore.toStringAsFixed(1));
         await _firestore
             .collection('lawyers')
             .doc(firebaseUser.uid)
-            .set(lawyer.toMap());
+            .set({...lawyer.toMap(), 'finalScore': initialScore});
         await firebaseUser.updateDisplayName(name);
         await firebaseUser.reload();
         return null;

@@ -77,7 +77,11 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
       }
 
       newRating = double.parse(newRating.toStringAsFixed(1));
-      final newScore = _calcScore(newRating, newCount, d['experience'] ?? 0);
+      final newScore = _calcScore(
+        newRating, newCount, d['experience'] ?? 0,
+        activityPoints: d['activityPoints'] ?? 0,
+        responseRate: (d['responseRate'] ?? 0.0).toDouble(),
+      );
 
       tx.set(ratingDocRef, {'rating': rating, 'userId': uid, 'lawyerId': widget.lawyer.uid});
       tx.update(lawyerRef, {
@@ -100,11 +104,16 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
     }
   }
 
-  double _calcScore(double rating, int reviewCount, int experience) {
-    double ratingScore = (rating / 5.0) * 35;
-    double expScore = (experience.clamp(0, 20) / 20.0) * 25;
-    double reviewScore = (reviewCount.clamp(0, 50) / 50.0) * 10;
-    return ratingScore + expScore + reviewScore;
+  // ✅ حساب كامل يشمل كل المعايير (100 نقطة)
+  double _calcScore(double rating, int reviewCount, int experience,
+      {int activityPoints = 0, double responseRate = 0.0}) {
+    double ratingScore   = (rating / 5.0) * 35;          // 35 نقطة
+    double expScore      = (experience.clamp(0, 20) / 20.0) * 25;  // 25 نقطة
+    double reviewScore   = (reviewCount.clamp(0, 50) / 50.0) * 10; // 10 نقطة
+    double activityScore = (activityPoints.clamp(0, 100) / 100.0) * 20; // 20 نقطة
+    double responseScore = (responseRate.clamp(0.0, 1.0)) * 10;    // 10 نقطة
+    final total = ratingScore + expScore + reviewScore + activityScore + responseScore;
+    return double.parse(total.toStringAsFixed(1));
   }
 
   Future<void> _startChat() async {

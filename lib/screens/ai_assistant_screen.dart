@@ -19,6 +19,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
 
   final String _apikey = "AIzaSyDvo7vQ-oBb_cNM0jyYCLOoI43dny0YobY";
 
+  // ✅ قائمة كاملة موحدة مع باقي الشاشات
   final List<String> allowed = [
     "Droit familial",
     "Droit pénal",
@@ -27,6 +28,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     "Droit immobilier",
     "Droit administratif",
     "Droit du travail",
+    "Droit des sociétés",
+    "Droit fiscal",
+    "Propriété Intellectuelle",
   ];
 
   final Color primaryBlue = const Color(0xFF1565C0);
@@ -59,7 +63,7 @@ Tu es un expert juridique algérien.
 
 Analyse cette situation et retourne UNIQUEMENT un mot EXACT parmi cette liste:
 
-[Droit familial, Droit pénal, Droit commercial, Droit civil, Droit immobilier, Droit administratif, Droit du travail]
+[Droit familial, Droit pénal, Droit commercial, Droit civil, Droit immobilier, Droit administratif, Droit du travail, Droit des sociétés, Droit fiscal, Propriété Intellectuelle]
 
 Ne donne aucune phrase.
 

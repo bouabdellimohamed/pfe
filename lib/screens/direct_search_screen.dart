@@ -5,7 +5,8 @@ import 'lawyer_profile_screen.dart';
 import 'lawyers_result_screen.dart';
 
 class DirectSearchScreen extends StatefulWidget {
-  const DirectSearchScreen({super.key});
+  final String? preselectedSpeciality;
+  const DirectSearchScreen({super.key, this.preselectedSpeciality});
 
   @override
   State<DirectSearchScreen> createState() => _DirectSearchScreenState();
@@ -18,6 +19,15 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> {
 
   List<LawyerModel> _recommendedLawyers = [];
   bool _isLoadingRecs = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // ✅ تطبيق التخصص المُمرَّر من الـ Questionnaire تلقائياً
+    if (widget.preselectedSpeciality != null) {
+      _selectedSpeciality = widget.preselectedSpeciality;
+    }
+  }
 
   final Color primaryColor = const Color(0xFF1565C0);
   final Color darkText = const Color(0xFF101010);

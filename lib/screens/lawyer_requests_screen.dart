@@ -15,6 +15,7 @@ class _LawyerRequestsScreenState extends State<LawyerRequestsScreen>
   late TabController _tabs;
   final _auth = AuthService();
   final _uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+  List<String> _mySpecialities = []; // ✅ تخصصات المحامي الحالي
 
   static const _navy = Color(0xFF0D1B2A);
   static const _navyLight = Color(0xFF1B2D42);
@@ -26,6 +27,21 @@ class _LawyerRequestsScreenState extends State<LawyerRequestsScreen>
   void initState() {
     super.initState();
     _tabs = TabController(length: 2, vsync: this);
+    _loadMySpecialities();
+  }
+
+  Future<void> _loadMySpecialities() async {
+    // ✅ جلب تخصصات المحامي من Firestore
+    final profile = await _auth.getLawyerProfile(_uid);
+    if (profile != null && mounted) {
+      setState(() {
+        _mySpecialities = profile.speciality
+            .split(',')
+            .map((s) => s.trim())
+            .where((s) => s.isNotEmpty)
+            .toList();
+      });
+    }
   }
 
   @override
@@ -58,7 +74,7 @@ class _LawyerRequestsScreenState extends State<LawyerRequestsScreen>
       body: TabBarView(
         controller: _tabs,
         children: [
-          _RequestsTab(uid: _uid, auth: _auth),
+          _RequestsTab(uid: _uid, auth: _auth, specialities: _mySpecialities),
           _ConsultationsTab(uid: _uid, auth: _auth),
         ],
       ),
@@ -72,7 +88,8 @@ class _LawyerRequestsScreenState extends State<LawyerRequestsScreen>
 class _RequestsTab extends StatelessWidget {
   final String uid;
   final AuthService auth;
-  const _RequestsTab({required this.uid, required this.auth});
+  final List<String> specialities;
+  const _RequestsTab({required this.uid, required this.auth, required this.specialities});
 
   static const _navy = Color(0xFF0D1B2A);
   static const _textSecondary = Color(0xFF8A9BB0);
@@ -80,7 +97,7 @@ class _RequestsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<RequestModel>>(
-      stream: auth.getOpenRequests(),
+      stream: auth.getOpenRequests(lawyerSpecialities: specialities),
       builder: (ctx, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator(color: Color(0xFFC9A84C)));

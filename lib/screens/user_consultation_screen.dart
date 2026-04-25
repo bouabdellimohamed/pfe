@@ -522,13 +522,13 @@ class _SharedConsultCardState extends State<_SharedConsultCard> {
 
     setState(() => _isAnswering = true);
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      final profile = await widget.auth.getUserProfile(widget.currentUserId);
+      // ✅ جلب اسم المحامي من collection lawyers لا users
+      final lawyerProfile = await widget.auth.getLawyerProfile(widget.currentUserId);
 
       await widget.auth.answerConsultation(
         consultationId: widget.consultation.id,
         lawyerId: widget.currentUserId,
-        lawyerName: profile?.fullName ?? user?.displayName ?? 'Avocat',
+        lawyerName: lawyerProfile?.name ?? 'Avocat',
         answer: _answerCtrl.text.trim(),
       );
 

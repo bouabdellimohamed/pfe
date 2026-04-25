@@ -530,7 +530,16 @@ class _QuestionnaireScreenState extends State<_QuestionnaireScreen> {
               ),
             ),
             onPressed: () {
-              Navigator.pop(context);
+              // ✅ يفتح DirectSearchScreen بالتخصص الموصى به مباشرةً
+              Navigator.pop(context); // أغلق الـ questionnaire
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => DirectSearchScreen(
+                    preselectedSpeciality: recommendation,
+                  ),
+                ),
+              );
             },
             child: const Text(
               'Chercher un avocat',

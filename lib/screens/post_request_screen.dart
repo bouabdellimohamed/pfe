@@ -23,10 +23,18 @@ class _PostRequestScreenState extends State<PostRequestScreen> {
   final Color primaryColor = const Color(0xFF1565C0);
   final Color backgroundColor = const Color(0xFFF8F9FA);
 
+  // ✅ أسماء موحدة مع lawyer_register_screen و direct_search_screen
   final List<String> categories = [
-    'Droit Civil', 'Droit Pénal', 'Droit de la Famille',
-    'Droit du Travail', 'Affaires Commerciales', 'Droit Immobilier',
-    'Droit Administratif', 'Droit Fiscal',
+    'Droit familial',
+    'Droit pénal',
+    'Droit commercial',
+    'Droit civil',
+    'Droit immobilier',
+    'Droit administratif',
+    'Droit du travail',
+    'Droit des sociétés',
+    'Droit fiscal',
+    'Propriété Intellectuelle',
   ];
 
   @override

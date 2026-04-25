@@ -1,6 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../models/consultation_model.dart';
+import '../models/lawyer_model.dart';
+import 'chat_thread_screen.dart';
 
 class UserMyRequestsScreen extends StatelessWidget {
   final String uid;
@@ -57,21 +61,32 @@ class UserMyRequestsScreen extends StatelessWidget {
   }
 }
 
-class _RequestCard extends StatelessWidget {
+class _RequestCard extends StatefulWidget {
   final RequestModel r;
   const _RequestCard({required this.r});
 
   @override
+  State<_RequestCard> createState() => _RequestCardState();
+}
+
+class _RequestCardState extends State<_RequestCard> {
+  static const _primary = Color(0xFF1565C0);
+  bool _showLawyers = false;
+
+  @override
   Widget build(BuildContext context) {
-    final open = r.status == 'open';
+    final open = widget.r.status == 'open';
+    final hasResponses = widget.r.respondedLawyerIds.isNotEmpty;
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // ── العنوان والحالة ──
           Row(children: [
-            Expanded(child: Text(r.title,
+            Expanded(child: Text(widget.r.title,
                 style: const TextStyle(
                     fontWeight: FontWeight.w700, fontSize: 14,
                     color: Color(0xFF263238)))),
@@ -90,24 +105,210 @@ class _RequestCard extends StatelessWidget {
             ),
           ]),
           const SizedBox(height: 4),
-          Text(r.type,
-              style: const TextStyle(
-                  color: Color(0xFF1565C0), fontSize: 12)),
+          Text(widget.r.type,
+              style: const TextStyle(color: _primary, fontSize: 12)),
           const SizedBox(height: 6),
-          Text(r.description,
+          Text(widget.r.description,
               maxLines: 2, overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                   color: Colors.grey, fontSize: 12, height: 1.4)),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
+
+          // ── زر عرض المحامين الذين ردّوا ──
           Row(children: [
-            const Icon(Icons.people_outline_rounded,
-                size: 13, color: Colors.grey),
+            const Icon(Icons.people_outline_rounded, size: 13, color: Colors.grey),
             const SizedBox(width: 4),
-            Text('${r.respondedLawyerIds.length} réponse(s)',
+            Text('${widget.r.respondedLawyerIds.length} réponse(s)',
                 style: const TextStyle(color: Colors.grey, fontSize: 11)),
+            const Spacer(),
+            if (hasResponses)
+              GestureDetector(
+                onTap: () => setState(() => _showLawyers = !_showLawyers),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: _primary.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _primary.withOpacity(0.2)),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text(_showLawyers ? 'Masquer' : 'Voir avocats',
+                        style: const TextStyle(
+                            color: _primary, fontSize: 11, fontWeight: FontWeight.w600)),
+                    const SizedBox(width: 4),
+                    Icon(_showLawyers ? Icons.expand_less : Icons.expand_more,
+                        color: _primary, size: 14),
+                  ]),
+                ),
+              ),
           ]),
+
+          // ── قائمة المحامين الذين ردّوا ──
+          if (_showLawyers && hasResponses) ...[
+            const SizedBox(height: 10),
+            const Divider(height: 1),
+            const SizedBox(height: 8),
+            ...widget.r.respondedLawyerIds.map((lawyerId) =>
+              _LawyerResponseTile(
+                lawyerId: lawyerId,
+                requestId: widget.r.id,
+                userId: widget.r.userId,
+              ),
+            ),
+          ],
         ]),
       ),
+    );
+  }
+}
+
+// ── بطاقة محامي ردّ على الطلب ──────────────────────────────────
+class _LawyerResponseTile extends StatefulWidget {
+  final String lawyerId;
+  final String requestId;
+  final String userId;
+  const _LawyerResponseTile({
+    required this.lawyerId,
+    required this.requestId,
+    required this.userId,
+  });
+
+  @override
+  State<_LawyerResponseTile> createState() => _LawyerResponseTileState();
+}
+
+class _LawyerResponseTileState extends State<_LawyerResponseTile> {
+  static const _primary = Color(0xFF1565C0);
+  LawyerModel? _lawyer;
+  bool _loading = true;
+  bool _openingChat = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLawyer();
+  }
+
+  Future<void> _loadLawyer() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('lawyers').doc(widget.lawyerId).get();
+      if (doc.exists && mounted) {
+        setState(() {
+          _lawyer = LawyerModel.fromMap(doc.data()!);
+          _loading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _openChat() async {
+    if (_openingChat) return;
+    setState(() => _openingChat = true);
+    try {
+      // ✅ نتحقق أولاً إذا كان هناك محادثة موجودة
+      final existing = await FirebaseFirestore.instance
+          .collection('conversations')
+          .where('userId', isEqualTo: widget.userId)
+          .where('lawyerId', isEqualTo: widget.lawyerId)
+          .limit(1)
+          .get();
+
+      String convId;
+      if (existing.docs.isNotEmpty) {
+        convId = existing.docs.first.id;
+      } else {
+        final doc = await FirebaseFirestore.instance
+            .collection('conversations').add({
+          'requestId': widget.requestId,
+          'userId': widget.userId,
+          'lawyerId': widget.lawyerId,
+          'lawyerName': _lawyer?.name ?? '',
+          'userName': '',
+          'createdAt': FieldValue.serverTimestamp(),
+          'lastMessageAt': null,
+          'lastMessageText': null,
+        });
+        convId = doc.id;
+      }
+
+      if (mounted) {
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => ChatThreadScreen(conversationId: convId)));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red));
+      }
+    } finally {
+      if (mounted) setState(() => _openingChat = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 6),
+        child: LinearProgressIndicator(minHeight: 2),
+      );
+    }
+    if (_lawyer == null) return const SizedBox.shrink();
+
+    final imageUrl = (_lawyer!.photoUrl?.isNotEmpty == true)
+        ? _lawyer!.photoUrl!
+        : 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(_lawyer!.name)}&background=1565C0&color=ffffff';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(children: [
+        // صورة المحامي
+        Container(
+          width: 38, height: 38,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            image: DecorationImage(image: NetworkImage(imageUrl), fit: BoxFit.cover),
+          ),
+        ),
+        const SizedBox(width: 10),
+        // اسم المحامي والتخصص
+        Expanded(child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(_lawyer!.name,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w700, fontSize: 13,
+                    color: Color(0xFF263238))),
+            Text(_lawyer!.speciality.split(',').first.trim(),
+                style: const TextStyle(color: Colors.grey, fontSize: 11)),
+          ],
+        )),
+        // زر المراسلة
+        _openingChat
+            ? const SizedBox(width: 24, height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2, color: _primary))
+            : GestureDetector(
+                onTap: _openChat,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _primary,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(Icons.chat_bubble_outline_rounded,
+                        color: Colors.white, size: 13),
+                    SizedBox(width: 5),
+                    Text('Contacter',
+                        style: TextStyle(color: Colors.white,
+                            fontSize: 11, fontWeight: FontWeight.bold)),
+                  ]),
+                ),
+              ),
+      ]),
     );
   }
 }

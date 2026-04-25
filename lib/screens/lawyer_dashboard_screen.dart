@@ -54,14 +54,26 @@ class _LawyerDashboardScreenState extends State<LawyerDashboardScreen> {
 
   Future<void> _loadStats() async {
     try {
-      final open = await FirebaseFirestore.instance
+      final openSnap = await FirebaseFirestore.instance
           .collection('requests').where('status', isEqualTo: 'open').get();
       final consult = await FirebaseFirestore.instance
           .collection('consultations').where('lawyerId', isEqualTo: _uid).get();
       final convs = await FirebaseFirestore.instance
           .collection('conversations').where('lawyerId', isEqualTo: _uid).get();
+
+      // ✅ فلترة الطلبات بتخصصات المحامي فقط
+      int relevantRequests = openSnap.docs.length;
+      if (_lawyer != null && _lawyer!.speciality.isNotEmpty) {
+        final mySpecs = _lawyer!.speciality
+            .split(',').map((s) => s.trim().toLowerCase()).toList();
+        relevantRequests = openSnap.docs.where((doc) {
+          final type = (doc.data()['type'] ?? '').toString().toLowerCase().trim();
+          return mySpecs.any((spec) => spec == type || type.contains(spec) || spec.contains(type));
+        }).length;
+      }
+
       if (mounted) setState(() {
-        _openRequests = open.docs.length;
+        _openRequests = relevantRequests;
         _myConsultations = consult.docs.length;
         _myConversations = convs.docs.length;
       });
