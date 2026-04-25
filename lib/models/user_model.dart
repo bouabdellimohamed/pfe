@@ -6,6 +6,7 @@ class UserModel {
   final String email;
   final String? phone;
   final int? age;
+  final String role; // 'user' | 'lawyer' | 'admin'
   final DateTime createdAt;
 
   UserModel({
@@ -14,27 +15,29 @@ class UserModel {
     required this.email,
     this.phone,
     this.age,
+    this.role = 'user',
     required this.createdAt,
   });
 
   Map<String, dynamic> toMap() => {
-    'uid': uid,
-    'fullName': fullName,
-    'email': email,
-    'phone': phone,
-    'age': age,
-    'role': 'user',
-    'createdAt': Timestamp.fromDate(createdAt),
-  };
+        'uid': uid,
+        'fullName': fullName,
+        'email': email,
+        'phone': phone,
+        'age': age,
+        'role': role,
+        'createdAt': Timestamp.fromDate(createdAt),
+      };
 
   factory UserModel.fromMap(Map<String, dynamic> m) => UserModel(
-    uid: m['uid'] ?? '',
-    fullName: m['fullName'] ?? '',
-    email: m['email'] ?? '',
-    phone: m['phone'],
-    age: m['age'],
-    createdAt: m['createdAt'] is Timestamp
-        ? (m['createdAt'] as Timestamp).toDate()
-        : DateTime.now(),
-  );
+        uid: m['uid'] ?? '',
+        fullName: m['fullName'] ?? '',
+        email: m['email'] ?? '',
+        phone: m['phone'],
+        age: m['age'],
+        role: m['role'] ?? 'user',
+        createdAt: m['createdAt'] is Timestamp
+            ? (m['createdAt'] as Timestamp).toDate()
+            : DateTime.now(),
+      );
 }

@@ -5,6 +5,8 @@ class ConversationModel {
   final String requestId;
   final String userId;
   final String lawyerId;
+  final String? lawyerName;
+  final String? userName;
   final DateTime createdAt;
   final DateTime? lastMessageAt;
   final String? lastMessageText;
@@ -14,6 +16,8 @@ class ConversationModel {
     required this.requestId,
     required this.userId,
     required this.lawyerId,
+    this.lawyerName,
+    this.userName,
     required this.createdAt,
     this.lastMessageAt,
     this.lastMessageText,
@@ -26,6 +30,8 @@ class ConversationModel {
       requestId: (d['requestId'] ?? '').toString(),
       userId: (d['userId'] ?? '').toString(),
       lawyerId: (d['lawyerId'] ?? '').toString(),
+      lawyerName: d['lawyerName']?.toString(),
+      userName: d['userName']?.toString(),
       createdAt: (d['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       lastMessageAt: (d['lastMessageAt'] as Timestamp?)?.toDate(),
       lastMessageText: d['lastMessageText']?.toString(),
@@ -36,12 +42,14 @@ class ConversationModel {
 class MessageModel {
   final String id;
   final String senderId;
+  final String senderName;
   final String text;
   final DateTime createdAt;
 
   MessageModel({
     required this.id,
     required this.senderId,
+    required this.senderName,
     required this.text,
     required this.createdAt,
   });
@@ -51,9 +59,9 @@ class MessageModel {
     return MessageModel(
       id: doc.id,
       senderId: (d['senderId'] ?? '').toString(),
+      senderName: (d['senderName'] ?? 'مستخدم').toString(),
       text: (d['text'] ?? '').toString(),
       createdAt: (d['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 }
-

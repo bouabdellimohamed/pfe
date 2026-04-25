@@ -42,25 +42,37 @@ class ChatInboxScreen extends StatelessWidget {
           itemBuilder: (_, i) {
             final c = list[i];
             final subtitle = c.lastMessageText ?? 'Conversation démarrée';
-            return ListTile(
-              tileColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.grey.shade200),
+            return FutureBuilder<String>(
+              future: chat.getOtherPersonName(
+                currentUserId: uid,
+                userId: c.userId,
+                lawyerId: c.lawyerId,
+                lawyerName: c.lawyerName,
+                userName: c.userName,
               ),
-              title: Text('Demande: ${c.requestId}'),
-              subtitle: Text(
-                subtitle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ChatThreadScreen(conversationId: c.id),
-                ),
-              ),
+              builder: (context, nameSnap) {
+                final otherPersonName = nameSnap.data ?? 'المحاور';
+                return ListTile(
+                  tileColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: Colors.grey.shade200),
+                  ),
+                  title: Text(otherPersonName),
+                  subtitle: Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ChatThreadScreen(conversationId: c.id),
+                    ),
+                  ),
+                );
+              },
             );
           },
         );
@@ -68,4 +80,3 @@ class ChatInboxScreen extends StatelessWidget {
     );
   }
 }
-

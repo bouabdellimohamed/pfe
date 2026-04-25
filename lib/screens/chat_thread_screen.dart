@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/chat_models.dart';
 import '../services/chat_service.dart';
@@ -16,6 +17,7 @@ class _ChatThreadScreenState extends State<ChatThreadScreen> {
   final _chat = ChatService();
   final _ctrl = TextEditingController();
   final _scroll = ScrollController();
+  String _otherPersonName = 'المحاور';
 
   @override
   void dispose() {
@@ -31,6 +33,81 @@ class _ChatThreadScreenState extends State<ChatThreadScreen> {
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOut,
     );
+  }
+
+  Future<void> _loadOtherPersonName() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final conversation = await _chat.getConversation(widget.conversationId);
+    if (conversation == null) return;
+
+    final bool iAmTheLawyer = conversation.lawyerId == uid;
+    String otherName = '';
+
+    print('=== DEBUG CHAT NAME ===');
+    print('My UID: $uid');
+    print('lawyerId: ${conversation.lawyerId}');
+    print('userId: ${conversation.userId}');
+    print('iAmTheLawyer: $iAmTheLawyer');
+    print('stored lawyerName: ${conversation.lawyerName}');
+    print('stored userName: ${conversation.userName}');
+
+    try {
+      if (iAmTheLawyer) {
+        // أنا المحامي — أجلب اسم العميل من users
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(conversation.userId)
+            .get();
+
+        print('users doc exists: ${userDoc.exists}');
+        if (userDoc.exists) {
+          print('users doc data: ${userDoc.data()}');
+          final data = userDoc.data() ?? {};
+          otherName = (data['fullName'] ?? data['full_name'] ??
+              data['name'] ?? data['displayName'] ?? '').toString().trim();
+        }
+
+        // fallback: اسم محفوظ في المحادثة
+        if (otherName.isEmpty && conversation.userName != null) {
+          otherName = conversation.userName!.trim();
+        }
+        if (otherName.isEmpty) otherName = 'مستخدم';
+
+      } else {
+        // أنا العميل — أجلب اسم المحامي من lawyers
+        final lawyerDoc = await FirebaseFirestore.instance
+            .collection('lawyers')
+            .doc(conversation.lawyerId)
+            .get();
+
+        print('lawyers doc exists: ${lawyerDoc.exists}');
+        if (lawyerDoc.exists) {
+          print('lawyers doc data: ${lawyerDoc.data()}');
+          final data = lawyerDoc.data() ?? {};
+          otherName = (data['name'] ?? data['fullName'] ??
+              data['full_name'] ?? '').toString().trim();
+        }
+
+        // fallback: اسم محفوظ في المحادثة
+        if (otherName.isEmpty && conversation.lawyerName != null) {
+          otherName = conversation.lawyerName!.trim();
+        }
+        if (otherName.isEmpty) otherName = 'محامي';
+      }
+    } catch (e) {
+      print('Error loading name: $e');
+      otherName = iAmTheLawyer ? 'مستخدم' : 'محامي';
+    }
+
+    print('Final otherName: $otherName');
+
+    if (mounted) setState(() => _otherPersonName = otherName);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOtherPersonName();
   }
 
   Future<void> _send() async {
@@ -51,7 +128,7 @@ class _ChatThreadScreenState extends State<ChatThreadScreen> {
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Chat'),
+        title: Text(_otherPersonName),
       ),
       body: Column(
         children: [
@@ -147,4 +224,3 @@ class _ChatThreadScreenState extends State<ChatThreadScreen> {
     );
   }
 }
-

@@ -111,24 +111,36 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
     if (currentUid == null) return;
 
-    // نبحث عن محادثة مباشرة بين المستخدم والمحامي
+    // ✅ نتحقق إذا كان هناك شات موجود بين المستخدم والمحامي (بأي requestId)
     final existing = await FirebaseFirestore.instance
         .collection('conversations')
         .where('userId', isEqualTo: currentUid)
         .where('lawyerId', isEqualTo: widget.lawyer.uid)
-        .where('requestId', isEqualTo: 'direct')
         .limit(1)
         .get();
 
     String convId;
     if (existing.docs.isNotEmpty) {
+      // شات موجود → نفتحه مباشرة
       convId = existing.docs.first.id;
     } else {
+      // لا يوجد شات → ننشئ واحداً جديداً مع حفظ أسماء الطرفين
+      String userName = '';
+      try {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users').doc(currentUid).get();
+        if (userDoc.exists) {
+          final data = userDoc.data() ?? {};
+          userName = (data['fullName'] ?? data['name'] ?? '').toString();
+        }
+      } catch (_) {}
+
       final doc = await FirebaseFirestore.instance.collection('conversations').add({
         'requestId': 'direct',
         'userId': currentUid,
         'lawyerId': widget.lawyer.uid,
         'lawyerName': widget.lawyer.name,
+        'userName': userName,
         'createdAt': FieldValue.serverTimestamp(),
         'lastMessageAt': null,
         'lastMessageText': null,
@@ -263,22 +275,7 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
                           ),
                         ),
                       ),
-                      if (lawyer.phone != null) ...[
-                        const SizedBox(width: 12),
-                        OutlinedButton.icon(
-                          onPressed: () {},
-                          icon: const Icon(Icons.phone_outlined, size: 18),
-                          label: const Text('Appeler'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: _primary,
-                            side: const BorderSide(color: _primary),
-                            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ],
+
                     ],
                   ),
 

@@ -155,6 +155,24 @@ class AuthService {
     return null;
   }
 
+  // ── الحصول على دور المستخدم ───────────────────────────────
+  Future<String> getUserRole(String uid) async {
+    try {
+      // فحص إذا كان admin
+      final adminDoc = await _firestore.collection('admins').doc(uid).get();
+      if (adminDoc.exists) return 'admin';
+
+      // فحص إذا كان lawyer
+      final lawyerDoc = await _firestore.collection('lawyers').doc(uid).get();
+      if (lawyerDoc.exists) return 'lawyer';
+
+      // إذا كان user عادي
+      final userDoc = await _firestore.collection('users').doc(uid).get();
+      if (userDoc.exists) return userDoc.data()?['role'] ?? 'user';
+    } catch (_) {}
+    return 'user';
+  }
+
   // ── الاستشارات ───────────────────────────────────────────────
   Future<void> createConsultation({
     required String userId,
@@ -182,21 +200,31 @@ class AuthService {
         .where('userId', isEqualTo: userId)
         .snapshots()
         .map((s) {
-          final list = s.docs.map(ConsultationModel.fromFirestore).toList();
-          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-          return list;
-        });
+      final list = s.docs.map(ConsultationModel.fromFirestore).toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
   }
 
   Stream<List<ConsultationModel>> getAllConsultations() {
+    return _firestore.collection('consultations').snapshots().map((s) {
+      final list = s.docs.map(ConsultationModel.fromFirestore).toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
+  }
+
+  // ── الاستشارات المشتركة (استشارات المستخدمين الآخرين)
+  Stream<List<ConsultationModel>> getOtherUsersConsultations(String userId) {
     return _firestore
         .collection('consultations')
+        .where('userId', isNotEqualTo: userId)
         .snapshots()
         .map((s) {
-          final list = s.docs.map(ConsultationModel.fromFirestore).toList();
-          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-          return list;
-        });
+      final list = s.docs.map(ConsultationModel.fromFirestore).toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
   }
 
   Future<void> answerConsultation({
@@ -242,10 +270,10 @@ class AuthService {
         .where('status', isEqualTo: 'open')
         .snapshots()
         .map((s) {
-          final list = s.docs.map(RequestModel.fromFirestore).toList();
-          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-          return list;
-        });
+      final list = s.docs.map(RequestModel.fromFirestore).toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
   }
 
   Stream<List<RequestModel>> getUserRequests(String userId) {
@@ -254,10 +282,10 @@ class AuthService {
         .where('userId', isEqualTo: userId)
         .snapshots()
         .map((s) {
-          final list = s.docs.map(RequestModel.fromFirestore).toList();
-          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-          return list;
-        });
+      final list = s.docs.map(RequestModel.fromFirestore).toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
   }
 
   Future<void> respondToRequest(String requestId, String lawyerId) async {
@@ -271,9 +299,9 @@ class AuthService {
     required String userId,
     required String lawyerId,
   }) async {
+    // ✅ نتحقق أولاً إذا كان هناك شات بين هذا المستخدم وهذا المحامي (بأي requestId)
     final existing = await _firestore
         .collection('conversations')
-        .where('requestId', isEqualTo: requestId)
         .where('userId', isEqualTo: userId)
         .where('lawyerId', isEqualTo: lawyerId)
         .limit(1)
@@ -283,10 +311,33 @@ class AuthService {
       return existing.docs.first.id;
     }
 
+    // لا يوجد شات → ننشئ واحداً جديداً مع حفظ أسماء الطرفين
+    // جلب اسم المستخدم العادي لحفظه في المحادثة
+    String userName = '';
+    try {
+      final userDoc = await _firestore.collection('users').doc(userId).get();
+      if (userDoc.exists) {
+        final data = userDoc.data() as Map<String, dynamic>? ?? {};
+        userName = (data['fullName'] ?? data['name'] ?? '').toString();
+      }
+    } catch (_) {}
+
+    // جلب اسم المحامي لحفظه في المحادثة
+    String lawyerName = '';
+    try {
+      final lawyerDoc = await _firestore.collection('lawyers').doc(lawyerId).get();
+      if (lawyerDoc.exists) {
+        final data = lawyerDoc.data() as Map<String, dynamic>? ?? {};
+        lawyerName = (data['name'] ?? '').toString();
+      }
+    } catch (_) {}
+
     final doc = await _firestore.collection('conversations').add({
       'requestId': requestId,
       'userId': userId,
       'lawyerId': lawyerId,
+      'userName': userName,
+      'lawyerName': lawyerName,
       'createdAt': FieldValue.serverTimestamp(),
       'lastMessageAt': null,
       'lastMessageText': null,
