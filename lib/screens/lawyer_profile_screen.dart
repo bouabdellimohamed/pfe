@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/lawyer_model.dart';
-import '../services/auth_service.dart';
+import '../services/favorites_service.dart';
 import 'chat_thread_screen.dart';
 
 class LawyerProfileScreen extends StatefulWidget {
@@ -21,10 +23,16 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
   bool _hasRated = false;
   bool _checkingRating = true;
 
+  // Favorites
+  final _favService = FavoritesService();
+  bool _isFavorite = false;
+  bool _loadingFav = true;
+
   @override
   void initState() {
     super.initState();
     _checkIfRated();
+    _checkFavorite();
   }
 
   Future<void> _checkIfRated() async {
@@ -40,6 +48,25 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
         _userRating = (doc.data()?['rating'] ?? 0).toDouble();
         _checkingRating = false;
       });
+    }
+  }
+
+  Future<void> _checkFavorite() async {
+    final fav = await _favService.isFavorite(widget.lawyer.uid);
+    if (mounted) setState(() { _isFavorite = fav; _loadingFav = false; });
+  }
+
+  Future<void> _toggleFavorite() async {
+    HapticFeedback.selectionClick();
+    final result = await _favService.toggleFavorite(widget.lawyer.uid);
+    if (mounted) {
+      setState(() => _isFavorite = result);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(result
+            ? 'Avocat sauvegardé dans les favoris ♡'
+            : 'Retiré des favoris'),
+        duration: const Duration(seconds: 2),
+      ));
     }
   }
 
@@ -209,20 +236,33 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(color: Colors.white, width: 3),
-                            image: DecorationImage(
-                              image: NetworkImage(imageUrl),
+                          ),
+                          child: ClipOval(
+                            child: CachedNetworkImage(
+                              imageUrl: imageUrl,
                               fit: BoxFit.cover,
+                              placeholder: (context, url) => const Center(child: CircularProgressIndicator(color: Colors.white)),
+                              errorWidget: (context, url, error) => const Icon(Icons.person, color: Colors.white, size: 40),
                             ),
                           ),
                         ),
                         const SizedBox(height: 12),
-                        Text(
-                          lawyer.name,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              lawyer.name,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            if (lawyer.isVerified) ...[
+                              const SizedBox(width: 8),
+                              const Icon(Icons.verified_rounded, color: Colors.amber, size: 22),
+                            ]
+                          ],
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -284,7 +324,30 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
                           ),
                         ),
                       ),
-
+                      const SizedBox(width: 10),
+                      // Favorite button
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        child: OutlinedButton(
+                          onPressed: _loadingFav ? null : _toggleFavorite,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: _isFavorite ? Colors.amber : Colors.grey,
+                            side: BorderSide(
+                              color: _isFavorite ? Colors.amber : Colors.grey.shade300,
+                              width: 1.5,
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Icon(
+                            _isFavorite ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                            size: 22,
+                            color: _isFavorite ? Colors.amber : Colors.grey,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
 

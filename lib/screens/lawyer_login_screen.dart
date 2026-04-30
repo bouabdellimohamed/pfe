@@ -244,7 +244,26 @@ class _LawyerLoginScreenState extends State<LawyerLoginScreen>
     child: Row(children: [
       Icon(Icons.error_outline, color: Colors.red.shade300, size: 18),
       const SizedBox(width: 10),
-      Expanded(child: Text(msg, style: TextStyle(color: Colors.red.shade300, fontSize: 13))),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(msg, style: TextStyle(color: Colors.red.shade300, fontSize: 13)),
+            if (msg.contains('vérifier votre email'))
+              TextButton(
+                onPressed: () async {
+                  setState(() => _loading = true);
+                  final res = await _auth.resendVerificationEmail(_emailCtrl.text.trim(), _passCtrl.text);
+                  setState(() {
+                    _loading = false;
+                    _error = res ?? 'Rien renvoyé ! Vérifiez votre boîte mail.';
+                  });
+                },
+                child: const Text('Renvoyer le lien', style: TextStyle(color: _gold, fontSize: 12, fontWeight: FontWeight.bold)),
+              ),
+          ],
+        ),
+      ),
     ]),
   );
 

@@ -1,6 +1,8 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
 import '../models/lawyer_model.dart';
 import 'lawyer_edit_profile_screen.dart';
@@ -11,30 +13,35 @@ class LawyerDashboardScreen extends StatefulWidget {
   State<LawyerDashboardScreen> createState() => _LawyerDashboardScreenState();
 }
 
-class _LawyerDashboardScreenState extends State<LawyerDashboardScreen> {
+class _LawyerDashboardScreenState extends State<LawyerDashboardScreen> with SingleTickerProviderStateMixin {
   final _auth = AuthService();
   final _uid = FirebaseAuth.instance.currentUser?.uid ?? '';
 
   LawyerModel? _lawyer;
   bool _loading = true;
 
-  // إحصاءات حقيقية
   int _openRequests = 0;
   int _myConsultations = 0;
   int _myConversations = 0;
 
-  static const _navy = Color(0xFF0D1B2A);
-  static const _navyLight = Color(0xFF1B2D42);
-  static const _navyCard = Color(0xFF162233);
   static const _gold = Color(0xFFC9A84C);
   static const _goldLight = Color(0xFFE2C47A);
-  static const _textPrimary = Color(0xFFF0EDE8);
-  static const _textSecondary = Color(0xFF8A9BB0);
+
+  late AnimationController _animController;
+  late Animation<double> _fadeAnim;
 
   @override
   void initState() {
     super.initState();
+    _animController = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
+    _fadeAnim = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
     _loadAll();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadAll() async {
@@ -50,6 +57,7 @@ class _LawyerDashboardScreenState extends State<LawyerDashboardScreen> {
       _lawyer = results[0] as LawyerModel?;
       _loading = false;
     });
+    _animController.forward(from: 0);
   }
 
   Future<void> _loadStats() async {
@@ -61,7 +69,6 @@ class _LawyerDashboardScreenState extends State<LawyerDashboardScreen> {
       final convs = await FirebaseFirestore.instance
           .collection('conversations').where('lawyerId', isEqualTo: _uid).get();
 
-      // ✅ فلترة الطلبات بتخصصات المحامي فقط
       int relevantRequests = openSnap.docs.length;
       if (_lawyer != null && _lawyer!.speciality.isNotEmpty) {
         final mySpecs = _lawyer!.speciality
@@ -83,63 +90,93 @@ class _LawyerDashboardScreenState extends State<LawyerDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _navy,
-      body: _loading
-          ? const Center(child: CircularProgressIndicator(color: _gold, strokeWidth: 2.5))
-          : RefreshIndicator(
-              onRefresh: _loadAll, color: _gold, backgroundColor: _navyLight,
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  _buildAppBar(),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
-                    sliver: SliverList(delegate: SliverChildListDelegate([
-                      const SizedBox(height: 20),
-                      _buildProfileCard(),
-                      const SizedBox(height: 28),
-                      _buildSectionLabel('Vue d\'ensemble'),
-                      const SizedBox(height: 14),
-                      _buildStatsGrid(),
-                      if (_lawyer?.bio != null && _lawyer!.bio!.isNotEmpty) ...[
-                        const SizedBox(height: 28),
-                        _buildSectionLabel('À propos'),
-                        const SizedBox(height: 14),
-                        _buildBioCard(),
-                      ],
-                      const SizedBox(height: 28),
-                    ])),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: _loading
+            ? const Center(child: CircularProgressIndicator(color: _gold, strokeWidth: 2.5))
+            : RefreshIndicator(
+                onRefresh: _loadAll, color: _gold, backgroundColor: const Color(0xFF1B2D42),
+                child: FadeTransition(
+                  opacity: _fadeAnim,
+                  child: CustomScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    slivers: [
+                      _buildAppBar(),
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+                        sliver: SliverList(delegate: SliverChildListDelegate([
+                          const SizedBox(height: 20),
+                          _buildProfileCard(),
+                          const SizedBox(height: 32),
+                          _buildSectionLabel('Tableau de Bord'),
+                          const SizedBox(height: 16),
+                          _buildStatsGrid(),
+                          if (_lawyer?.bio != null && _lawyer!.bio!.isNotEmpty) ...[
+                            const SizedBox(height: 32),
+                            _buildSectionLabel('À propos de vous'),
+                            const SizedBox(height: 16),
+                            _buildBioCard(),
+                          ],
+                          const SizedBox(height: 40),
+                        ])),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
+      ),
     );
   }
 
   Widget _buildAppBar() => SliverAppBar(
-    backgroundColor: _navyLight,
+    backgroundColor: Colors.transparent,
     floating: true, pinned: true, expandedHeight: 0, elevation: 0,
     automaticallyImplyLeading: false,
+    flexibleSpace: ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(color: Colors.black.withOpacity(0.2)),
+      ),
+    ),
     title: Row(children: [
       Container(
-        width: 32, height: 32,
+        width: 38, height: 38,
         decoration: BoxDecoration(
-          shape: BoxShape.circle, color: const Color(0x1AC9A84C),
-          border: Border.all(color: const Color(0x33C9A84C)),
+          shape: BoxShape.circle, 
+          gradient: const LinearGradient(
+            colors: [_goldLight, _gold],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(color: _gold.withOpacity(0.4), blurRadius: 8, spreadRadius: 1),
+          ],
         ),
-        child: const Icon(Icons.balance_rounded, color: _gold, size: 16),
+        child: const Icon(Icons.balance_rounded, color: Colors.white, size: 20),
       ),
-      const SizedBox(width: 10),
-      const Text('Espace Avocat', style: TextStyle(
-          color: _textPrimary, fontSize: 17, fontWeight: FontWeight.w700)),
+      const SizedBox(width: 12),
+      Text('Espace Avocat', style: GoogleFonts.outfit(
+          color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600)),
     ]),
     actions: [
-      IconButton(
-        icon: const Icon(Icons.logout_rounded, color: _textSecondary, size: 22),
-        tooltip: 'Déconnexion',
-        onPressed: _confirmSignOut,
+      Container(
+        margin: const EdgeInsets.only(right: 12),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.1),
+          shape: BoxShape.circle,
+        ),
+        child: IconButton(
+          icon: const Icon(Icons.logout_rounded, color: Colors.white, size: 20),
+          tooltip: 'Déconnexion',
+          onPressed: _confirmSignOut,
+        ),
       ),
-      const SizedBox(width: 4),
     ],
   );
 
@@ -150,77 +187,86 @@ class _LawyerDashboardScreenState extends State<LawyerDashboardScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: _navyCard, borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0x26C9A84C)),
-        boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 24, offset: Offset(0, 8))],
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 20, spreadRadius: -5),
+        ],
       ),
       child: Column(children: [
-        // Avatar
         Stack(alignment: Alignment.bottomRight, children: [
           Container(
-            width: 88, height: 88,
+            width: 100, height: 100,
             decoration: BoxDecoration(
-              shape: BoxShape.circle, color: const Color(0x1AC9A84C),
-              border: Border.all(color: _gold, width: 2),
-              boxShadow: const [BoxShadow(color: Color(0x28C9A84C), blurRadius: 18, spreadRadius: 4)],
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [_goldLight.withOpacity(0.2), _gold.withOpacity(0.05)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              border: Border.all(color: _gold, width: 2.5),
+              boxShadow: [BoxShadow(color: _gold.withOpacity(0.15), blurRadius: 20, spreadRadius: 5)],
             ),
             child: Center(child: Text(initials,
-                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: _gold))),
+                style: GoogleFonts.outfit(fontSize: 32, fontWeight: FontWeight.bold, color: _gold))),
           ),
           Container(
-            width: 24, height: 24,
+            width: 28, height: 28,
             decoration: BoxDecoration(
-              color: const Color(0xFF2E7D32), shape: BoxShape.circle,
-              border: Border.all(color: _navyCard, width: 2),
+              color: const Color(0xFF4CAF50), shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFF203A43), width: 3),
             ),
-            child: const Icon(Icons.check, color: Colors.white, size: 12),
+            child: const Icon(Icons.check, color: Colors.white, size: 14),
           ),
         ]),
-        const SizedBox(height: 16),
-        Text(_lawyer?.name ?? 'Avocat', style: const TextStyle(
-            color: _textPrimary, fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: -0.3)),
-        const SizedBox(height: 8),
+        const SizedBox(height: 18),
+        Text(_lawyer?.name ?? 'Avocat', style: GoogleFonts.outfit(
+            color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+        const SizedBox(height: 10),
         if (_lawyer?.speciality != null)
           Wrap(
-            spacing: 6, runSpacing: 6, alignment: WrapAlignment.center,
+            spacing: 8, runSpacing: 8, alignment: WrapAlignment.center,
             children: _lawyer!.speciality.split(', ').map((s) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(
-                color: const Color(0x1AC9A84C), borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0x33C9A84C)),
+                color: _gold.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: _gold.withOpacity(0.3)),
               ),
-              child: Text(s, style: const TextStyle(color: _goldLight, fontSize: 12)),
+              child: Text(s, style: GoogleFonts.poppins(color: _goldLight, fontSize: 12, fontWeight: FontWeight.w500)),
             )).toList(),
           ),
+        const SizedBox(height: 24),
+        Container(height: 1, color: Colors.white.withOpacity(0.1)),
         const SizedBox(height: 20),
-        const Divider(color: Color(0x1AF0EDE8)),
-        const SizedBox(height: 14),
         _infoRow(Icons.mail_outline_rounded, _lawyer?.email ?? ''),
         if (_lawyer?.phone != null) _infoRow(Icons.phone_outlined, _lawyer!.phone!),
         if (_lawyer?.wilaya != null)
           _infoRow(Icons.location_on_outlined,
               [_lawyer!.wilaya, _lawyer!.daira, _lawyer!.commune]
-                  .where((s) => s != null && s!.isNotEmpty)
+                  .where((s) => s != null && s.isNotEmpty)
                   .join(', ')),
         if (_lawyer?.experience != null)
           _infoRow(Icons.work_outline_rounded, "${_lawyer!.experience} ans d'expérience"),
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
         SizedBox(
           width: double.infinity,
-          child: OutlinedButton.icon(
+          height: 48,
+          child: ElevatedButton.icon(
             onPressed: () {
               if (_lawyer == null) return;
               Navigator.push(context, MaterialPageRoute(
                 builder: (_) => LawyerEditProfileScreen(lawyer: _lawyer),
               )).then((v) { if (v == true) _loadAll(); });
             },
-            icon: const Icon(Icons.edit_outlined, size: 16),
-            label: const Text('Modifier le profil'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: _gold,
-              side: const BorderSide(color: Color(0x66C9A84C)),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            icon: const Icon(Icons.edit_outlined, size: 18, color: Colors.black87),
+            label: Text('Modifier le profil', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.black87)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _gold,
+              elevation: 8,
+              shadowColor: _gold.withOpacity(0.5),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
         ),
@@ -229,74 +275,102 @@ class _LawyerDashboardScreenState extends State<LawyerDashboardScreen> {
   }
 
   Widget _infoRow(IconData icon, String text) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 5),
+    padding: const EdgeInsets.symmetric(vertical: 6),
     child: Row(children: [
-      Icon(icon, size: 16, color: _textSecondary),
-      const SizedBox(width: 10),
-      Expanded(child: Text(text, style: const TextStyle(color: _textSecondary, fontSize: 13),
+      Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, size: 16, color: _goldLight),
+      ),
+      const SizedBox(width: 14),
+      Expanded(child: Text(text, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14),
           overflow: TextOverflow.ellipsis)),
     ]),
   );
 
   Widget _buildSectionLabel(String t) => Row(children: [
-    Container(width: 3, height: 18,
+    Container(width: 4, height: 20,
         decoration: BoxDecoration(color: _gold, borderRadius: BorderRadius.circular(4))),
-    const SizedBox(width: 10),
-    Text(t.toUpperCase(), style: const TextStyle(
-        color: _textPrimary, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.5)),
+    const SizedBox(width: 12),
+    Text(t.toUpperCase(), style: GoogleFonts.outfit(
+        color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
   ]);
 
   Widget _buildStatsGrid() {
     final stats = [
-      _Stat('Demandes ouvertes', '$_openRequests',
-          Icons.inbox_outlined, const Color(0xFF4CAF50), const Color(0x1A4CAF50)),
+      _Stat('Demandes', '$_openRequests',
+          Icons.inbox_outlined, const Color(0xFF4CAF50)),
       _Stat('Consultations', '$_myConsultations',
-          Icons.chat_bubble_outline_rounded, const Color(0xFF42A5F5), const Color(0x1A42A5F5)),
-      _Stat('Conversations', '$_myConversations',
-          Icons.forum_outlined, const Color(0xFFFF9800), const Color(0x1AFF9800)),
-      _Stat('Note', '${(_lawyer?.rating ?? 0.0).toStringAsFixed(1)}★',
-          Icons.star_outline_rounded, _gold, const Color(0x1AC9A84C)),
+          Icons.chat_bubble_outline_rounded, const Color(0xFF42A5F5)),
+      _Stat('Messages', '$_myConversations',
+          Icons.forum_outlined, const Color(0xFFFF9800)),
+      _Stat('Note', '${(_lawyer?.rating ?? 0.0).toStringAsFixed(1)}',
+          Icons.star_rounded, _gold),
     ];
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 1.55),
+          crossAxisCount: 2, mainAxisSpacing: 16, crossAxisSpacing: 16, childAspectRatio: 1.3),
       itemCount: stats.length,
       itemBuilder: (_, i) => Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: _navyCard, borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0x14FFFFFF)),
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4)),
+          ],
         ),
-        child: Row(children: [
-          Container(width: 44, height: 44,
-              decoration: BoxDecoration(color: stats[i].bg, borderRadius: BorderRadius.circular(12)),
-              child: Icon(stats[i].icon, color: stats[i].color, size: 22)),
-          const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center, children: [
-            Text(stats[i].value, style: const TextStyle(
-                color: _textPrimary, fontSize: 20, fontWeight: FontWeight.w700)),
-            Text(stats[i].label, style: const TextStyle(color: _textSecondary, fontSize: 11),
-                overflow: TextOverflow.ellipsis),
-          ])),
-        ]),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: stats[i].color.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(stats[i].icon, color: stats[i].color, size: 24),
+                ),
+                Text(stats[i].value, style: GoogleFonts.outfit(
+                    color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            Text(stats[i].label, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500)),
+          ]
+        ),
       ),
     );
   }
 
   Widget _buildBioCard() => Container(
-    width: double.infinity, padding: const EdgeInsets.all(20),
+    width: double.infinity, padding: const EdgeInsets.all(24),
     decoration: BoxDecoration(
-      color: _navyCard, borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: const Color(0x14FFFFFF)),
+      color: Colors.white.withOpacity(0.05),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: Colors.white.withOpacity(0.1)),
+      boxShadow: [
+        BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4)),
+      ],
     ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Icon(Icons.format_quote_rounded, color: _gold, size: 26),
-      const SizedBox(height: 8),
-      Text(_lawyer!.bio!, style: const TextStyle(
-          color: _textSecondary, fontSize: 14, fontStyle: FontStyle.italic, height: 1.6)),
+      Row(
+        children: [
+          Icon(Icons.format_quote_rounded, color: _gold.withOpacity(0.5), size: 32),
+        ],
+      ),
+      const SizedBox(height: 10),
+      Text(_lawyer!.bio!, style: GoogleFonts.poppins(
+          color: Colors.white.withOpacity(0.85), fontSize: 15, fontStyle: FontStyle.italic, height: 1.6)),
     ]),
   );
 
@@ -304,15 +378,15 @@ class _LawyerDashboardScreenState extends State<LawyerDashboardScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: _navyLight,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Déconnexion',
-            style: TextStyle(color: _textPrimary, fontWeight: FontWeight.w700)),
-        content: const Text('Voulez-vous vraiment vous déconnecter ?',
-            style: TextStyle(color: _textSecondary)),
+        backgroundColor: const Color(0xFF1B2D42),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: Colors.white.withOpacity(0.1))),
+        title: Text('Déconnexion',
+            style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
+        content: Text('Voulez-vous vraiment vous déconnecter ?',
+            style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context),
-              child: const Text('Annuler', style: TextStyle(color: _textSecondary))),
+              child: Text('Annuler', style: GoogleFonts.poppins(color: Colors.white70))),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
@@ -320,10 +394,10 @@ class _LawyerDashboardScreenState extends State<LawyerDashboardScreen> {
               if (mounted) Navigator.pushReplacementNamed(context, '/');
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade700,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Déconnecter', style: TextStyle(color: Colors.white)),
+            child: Text('Déconnecter', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -334,6 +408,7 @@ class _LawyerDashboardScreenState extends State<LawyerDashboardScreen> {
 class _Stat {
   final String label, value;
   final IconData icon;
-  final Color color, bg;
-  const _Stat(this.label, this.value, this.icon, this.color, this.bg);
+  final Color color;
+  const _Stat(this.label, this.value, this.icon, this.color);
 }
+

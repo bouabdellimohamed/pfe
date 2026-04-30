@@ -34,6 +34,7 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> {
   final Color greyText = const Color(0xFF757575);
 
   final List<String> _specialities = [
+    'Généraliste',
     'Droit familial',
     'Droit pénal',
     'Droit commercial',

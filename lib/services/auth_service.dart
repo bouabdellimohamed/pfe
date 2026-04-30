@@ -1,5 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import '../models/lawyer_model.dart';
 import '../models/user_model.dart';
 import '../models/consultation_model.dart';
@@ -12,6 +15,7 @@ class AuthService {
   Stream<User?> get user => _auth.authStateChanges();
 
   // ── تسجيل مستخدم عادي ───────────────────────────────────────
+  // ✅ لا نحفظ في Firestore هنا — نؤجل الحفظ لأول تسجيل دخول ناجح بعد تأكيد الإيميل
   Future<String?> registerUser({
     required String fullName,
     required String email,
@@ -25,21 +29,21 @@ class AuthService {
         password: password,
       );
       final u = cred.user!;
-      final model = UserModel(
-        uid: u.uid,
-        fullName: fullName,
-        email: email,
-        phone: phone,
-        age: age,
-        createdAt: DateTime.now(),
-      );
-      await _firestore.collection('users').doc(u.uid).set(model.toMap());
-      await u.updateDisplayName(fullName);
+
+      // نحفظ البيانات مؤقتاً في displayName كـ JSON — تُستخدم عند أول دخول ناجح
+      final pendingData = jsonEncode({
+        'fullName': fullName,
+        'phone': phone,
+        'age': age,
+      });
+      await u.updateDisplayName(pendingData);
+      await u.sendEmailVerification();
+      await _auth.signOut();
       return null;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'email-already-in-use') return 'Cet email est déjà utilisé';
       if (e.code == 'weak-password') return 'Mot de passe trop faible (6 min)';
-      return 'Erreur: ${e.message}';
+      return 'Erreur: ${e.message ?? e.code}';
     }
   }
 
@@ -62,12 +66,36 @@ class AuthService {
         return 'Ce compte est un compte avocat.\nUtilisez la connexion avocat.';
       }
 
-      // فحص: هل هو user؟
+      // ✅ يجب تأكيد الإيميل قبل أي شيء آخر
+      if (!cred.user!.emailVerified) {
+        await _auth.signOut();
+        return 'Veuillez vérifier votre email en cliquant sur le lien reçu.';
+      }
+
+      // ✅ أول دخول ناجح بعد تأكيد الإيميل — ننشئ وثيقة Firestore الآن
       final userDoc = await _firestore.collection('users').doc(uid).get();
       if (!userDoc.exists) {
-        await _auth.signOut();
-        return 'Compte introuvable. Veuillez créer un compte.';
+        // نقرأ البيانات المحفوظة مؤقتاً في displayName
+        Map<String, dynamic> pending = {};
+        try {
+          final dn = cred.user!.displayName ?? '{}';
+          pending = jsonDecode(dn) as Map<String, dynamic>;
+        } catch (_) {}
+
+        final model = UserModel(
+          uid: uid,
+          fullName: pending['fullName'] ?? cred.user!.displayName ?? '',
+          email: cred.user!.email ?? email,
+          phone: pending['phone'] as String?,
+          age: pending['age'] as int?,
+          createdAt: DateTime.now(),
+        );
+        await _firestore.collection('users').doc(uid).set(model.toMap());
+
+        // نحدّث displayName ليكون الاسم الحقيقي (بدل JSON)
+        await cred.user!.updateDisplayName(model.fullName);
       }
+
       if ((userDoc.data()?['disabled'] ?? false) == true) {
         await _auth.signOut();
         return 'Ce compte est désactivé. Contactez le support.';
@@ -97,22 +125,41 @@ class AuthService {
       );
       final uid = cred.user!.uid;
 
-      // فحص: هل هو user عادي؟
-      final userDoc = await _firestore.collection('users').doc(uid).get();
-      if (userDoc.exists) {
-        await _auth.signOut();
-        return 'Ce compte est un compte utilisateur.\nUtilisez la connexion utilisateur.';
-      }
-
-      // فحص: هل هو محامي؟
+      // ✅ إصلاح خطأ #2: فحص وجود حساب المحامي أولاً — رسائل الخطأ ستكون دقيقة
       final lawyerDoc = await _firestore.collection('lawyers').doc(uid).get();
       if (!lawyerDoc.exists) {
+        // نفحص هل هو user عادي لإعطاء رسالة أوضح
+        final userDoc = await _firestore.collection('users').doc(uid).get();
         await _auth.signOut();
+        if (userDoc.exists) {
+          return 'Ce compte est un compte utilisateur.\nUtilisez la connexion utilisateur.';
+        }
         return 'Compte avocat introuvable. Veuillez vous inscrire.';
+      }
+
+      // ✅ الحساب موجود — الآن نتحقق من الإيميل (الرسالة ستكون منطقية)
+      if (!cred.user!.emailVerified) {
+        await _auth.signOut();
+        return 'Veuillez vérifier votre email en cliquant sur le lien reçu.';
+      }
+      // ✅ فحص حالة الطلب
+      final status = lawyerDoc.data()?['status'] ?? 'approved';
+      if (status == 'pending') {
+        await _auth.signOut();
+        return 'Votre demande est en cours d\'examen.\nVous pourrez vous connecter dès que l\'administrateur aura approuvé votre dossier.';
+      }
+      if (status == 'rejected') {
+        await _auth.signOut();
+        return 'Votre demande a été refusée.\nContactez l\'administrateur pour plus d\'informations.';
       }
       if ((lawyerDoc.data()?['disabled'] ?? false) == true) {
         await _auth.signOut();
         return 'Ce compte avocat est désactivé. Contactez le support.';
+      }
+
+      // ✅ تحديث emailVerified في Firestore عند أول دخول ناجح
+      if ((lawyerDoc.data()?['emailVerified'] ?? true) == false) {
+        await _firestore.collection('lawyers').doc(uid).update({'emailVerified': true});
       }
 
       return null; // ✅ نجح
@@ -137,18 +184,40 @@ class AuthService {
         email: email, password: password);
       final uid = cred.user!.uid;
 
-      // ✅ تحقق من نوع الحساب — لا نسمح للمحامي بالدخول عبر مدخل المستخدم
+      // لا نسمح للمحامي بالدخول عبر مدخل المستخدم
       final lawyerDoc = await _firestore.collection('lawyers').doc(uid).get();
       if (lawyerDoc.exists) {
         await _auth.signOut();
         return 'Ce compte est un compte avocat.\nUtilisez la connexion avocat.';
       }
 
+      // ✅ تأكيد الإيميل أولاً قبل أي فحص Firestore
+      if (!cred.user!.emailVerified) {
+        await _auth.signOut();
+        return 'Veuillez vérifier votre email en cliquant sur le lien reçu.';
+      }
+
+      // ✅ أول دخول ناجح — ننشئ وثيقة Firestore إذا لم تكن موجودة
       final userDoc = await _firestore.collection('users').doc(uid).get();
       if (!userDoc.exists) {
-        await _auth.signOut();
-        return 'Compte introuvable. Veuillez créer un compte.';
+        Map<String, dynamic> pending = {};
+        try {
+          final dn = cred.user!.displayName ?? '{}';
+          pending = jsonDecode(dn) as Map<String, dynamic>;
+        } catch (_) {}
+
+        final model = UserModel(
+          uid: uid,
+          fullName: pending['fullName'] ?? '',
+          email: cred.user!.email ?? email,
+          phone: pending['phone'] as String?,
+          age: pending['age'] as int?,
+          createdAt: DateTime.now(),
+        );
+        await _firestore.collection('users').doc(uid).set(model.toMap());
+        await cred.user!.updateDisplayName(model.fullName);
       }
+
       if ((userDoc.data()?['disabled'] ?? false) == true) {
         await _auth.signOut();
         return 'Ce compte est désactivé. Contactez le support.';
@@ -160,9 +229,9 @@ class AuthService {
       if (e.code == 'wrong-password') return 'Mot de passe incorrect';
       if (e.code == 'invalid-credential')
         return 'Email ou mot de passe incorrect';
-      return 'Erreur: \${e.message}';
+      return 'Erreur: ${e.message}';
     } catch (e) {
-      return 'Erreur inattendue: \$e';
+      return 'Erreur inattendue: $e';
     }
   }
 
@@ -240,10 +309,12 @@ class AuthService {
         .collection('consultations')
         .snapshots()
         .map((s) {
-      // ✅ نفلتر في الكود: لا يرى استشاراته الخاصة ولا الاستشارات التي أجاب عليها
+      // ✅ نفلتر في الكود: لا يرى استشاراته الخاصة
+      // ملاحظة: المستخدم العادي لا يمكنه الإجابة على استشارات، لذا شرط lawyerId != userId
+      // كان عديم المعنى للمستخدمين العاديين. نكتفي بإخفاء استشاراته الشخصية.
       final list = s.docs
           .map(ConsultationModel.fromFirestore)
-          .where((c) => c.userId != userId && c.lawyerId != userId)
+          .where((c) => c.userId != userId)
           .toList();
       list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return list;
@@ -344,11 +415,25 @@ class AuthService {
       final newActivity = ((d['activityPoints'] ?? 0) as int) + activityDelta;
       final clampedActivity = newActivity.clamp(0, 100);
 
-      // حساب responseRate: نسبة الطلبات التي ردّ عليها
-      final totalRequests = await _firestore.collection('requests')
+      // ✅ responseRate = طلبات ردّ عليها ÷ (ردّ عليها + مفتوحة لم يردّ عليها بعد)
+      // هذا يعكس نسبة الاستجابة الحقيقية: كم طلباً متاحاً ردّ عليه المحامي
+      final respondedRequests = await _firestore.collection('requests')
           .where('respondedLawyerIds', arrayContains: lawyerId).get();
-      final responseRate = totalRequests.docs.length > 0
-          ? (totalRequests.docs.length / (totalRequests.docs.length + 1.0)).clamp(0.0, 1.0)
+      final openNotRespondedRequests = await _firestore.collection('requests')
+          .where('status', isEqualTo: 'open').get();
+
+      // الطلبات المفتوحة التي لم يردّ عليها بعد
+      final openNotResponded = openNotRespondedRequests.docs
+          .where((doc) {
+            final ids = List<String>.from(doc.data()['respondedLawyerIds'] ?? []);
+            return !ids.contains(lawyerId);
+          })
+          .length;
+
+      final respondedCount = respondedRequests.docs.length;
+      final totalCount = respondedCount + openNotResponded;
+      final responseRate = totalCount > 0
+          ? (respondedCount / totalCount).clamp(0.0, 1.0)
           : 0.0;
 
       // إعادة حساب finalScore
@@ -370,7 +455,7 @@ class AuthService {
         'finalScore': newScore,
       });
     } catch (e) {
-      print('Error updating lawyer activity: \$e');
+      debugPrint('Error updating lawyer activity: $e');
     }
   }
 
@@ -425,7 +510,7 @@ class AuthService {
     return doc.id;
   }
 
-  // ── تسجيل محامي جديد ─────────────────────────────────────────
+  // ── تسجيل محامي جديد (مع وثيقة + انتظار موافقة الأدمين) ────
   Future<String?> registerLawyer({
     required String email,
     required String password,
@@ -439,6 +524,8 @@ class AuthService {
     String? wilaya,
     String? daira,
     String? commune,
+    Uint8List? documentBytes,
+    String? documentName,
   }) async {
     try {
       UserCredential result = await _auth.createUserWithEmailAndPassword(
@@ -447,6 +534,36 @@ class AuthService {
       );
       User? firebaseUser = result.user;
       if (firebaseUser != null) {
+        // ── رفع الوثيقة إلى Firebase Storage ──
+        String? documentUrl;
+        int? totalChunks;
+        String? base64String;
+
+        if (documentBytes != null && documentName != null) {
+          try {
+            final ext = documentName.contains('.')
+                ? documentName.split('.').last.toLowerCase()
+                : 'pdf';
+            final mimeType = ext == 'pdf' ? 'application/pdf' : 'image/$ext';
+            
+            base64String = base64Encode(documentBytes);
+            // 800KB per chunk to stay well under the 1MB limit
+            final int chunkSize = 800000;
+            totalChunks = (base64String.length / chunkSize).ceil();
+            
+            if (totalChunks > 1) {
+              documentUrl = 'chunked:$mimeType:$totalChunks';
+            } else {
+              documentUrl = 'data:$mimeType;base64,$base64String';
+            }
+
+          } catch (e) {
+            await firebaseUser.delete();
+            await _auth.signOut();
+            return 'Erreur lors de la préparation du fichier.';
+          }
+        }
+
         LawyerModel lawyer = LawyerModel(
           uid: firebaseUser.uid,
           email: email,
@@ -461,15 +578,38 @@ class AuthService {
           daira: daira,
           commune: commune,
         );
-        // ✅ احسب finalScore الأولي بناءً على الخبرة
         final expScore = ((experience ?? 0).clamp(0, 20) / 20.0) * 25;
         final initialScore = double.parse(expScore.toStringAsFixed(1));
-        await _firestore
-            .collection('lawyers')
-            .doc(firebaseUser.uid)
-            .set({...lawyer.toMap(), 'finalScore': initialScore});
+        await _firestore.collection('lawyers').doc(firebaseUser.uid).set({
+          ...lawyer.toMap(),
+          'finalScore': initialScore,
+          'status': 'pending',        // ✅ في انتظار موافقة الأدمين
+          'documentUrl': documentUrl, // ✅ رابط الوثيقة
+          'createdAt': FieldValue.serverTimestamp(), // ✅ مرة واحدة فقط عند الإنشاء
+          'emailVerified': false, // ✅ يُحدَّث عند أول تسجيل دخول ناجح
+        });
+
+        // ✅ حفظ الأجزاء (Chunks) إذا كان الملف كبيراً
+        if (documentUrl != null && documentUrl.startsWith('chunked:') && base64String != null && totalChunks != null) {
+          final int chunkSize = 800000;
+          for (int i = 0; i < totalChunks; i++) {
+            int start = i * chunkSize;
+            int end = (i + 1) * chunkSize;
+            if (end > base64String.length) end = base64String.length;
+            
+            String chunkData = base64String.substring(start, end);
+            await _firestore.collection('lawyers')
+              .doc(firebaseUser.uid)
+              .collection('document_chunks')
+              .doc('chunk_$i')
+              .set({'data': chunkData});
+          }
+        }
+
         await firebaseUser.updateDisplayName(name);
-        await firebaseUser.reload();
+        // ✅ إرسال رسالة تفعيل الإيميل للمحامي بعد رفع الوثيقة وإنشاء الحساب
+        await firebaseUser.sendEmailVerification();
+        await _auth.signOut();
         return null;
       }
       return 'Erreur lors de la création du compte';
@@ -486,6 +626,21 @@ class AuthService {
   // ── تسجيل الخروج ─────────────────────────────────────────────
   Future<void> signOut() async => await _auth.signOut();
 
+  // ── إعادة إرسال رابط التحقق ──────────────────────────────────
+  Future<String?> resendVerificationEmail(String email, String password) async {
+    try {
+      final cred = await _auth.signInWithEmailAndPassword(email: email, password: password);
+      if (!cred.user!.emailVerified) {
+        await cred.user!.sendEmailVerification();
+        await _auth.signOut();
+        return null;
+      }
+      return "L'email est déjà vérifié.";
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
   // ── جلب بيانات المحامي ───────────────────────────────────────
   Future<LawyerModel?> getLawyerProfile(String uid) async {
     try {
@@ -493,7 +648,7 @@ class AuthService {
       if (doc.exists)
         return LawyerModel.fromMap(doc.data() as Map<String, dynamic>);
     } catch (e) {
-      print('Erreur getProfile: $e');
+      debugPrint('Erreur getProfile: $e');
     }
     return null;
   }

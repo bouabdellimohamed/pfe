@@ -174,30 +174,21 @@ class ChatService {
   }
 
   Stream<List<MessageModel>> streamMessages(String conversationId) {
+    // ✅ الاستماع مباشرةً على subcollection الرسائل — يضمن التحديث الفوري
     return _conversations
         .doc(conversationId)
+        .collection('messages')
+        .orderBy('createdAt', descending: false)
         .snapshots()
-        .asyncExpand((conversationDoc) async* {
-      final conversationData = conversationDoc.data() as Map<String, dynamic>?;
-      if (conversationData == null) {
-        yield [];
-        return;
-      }
-
-      final userId = conversationData['userId'] as String?;
-      final lawyerId = conversationData['lawyerId'] as String?;
-
-      final messagesSnapshot =
-          await _conversations.doc(conversationId).collection('messages').get();
-
+        .asyncMap((snapshot) async {
       final messages = <MessageModel>[];
 
-      for (final doc in messagesSnapshot.docs) {
+      for (final doc in snapshot.docs) {
         final d = doc.data() as Map<String, dynamic>;
         final senderId = (d['senderId'] ?? '').toString();
         var senderName = (d['senderName'] ?? '').toString();
 
-        // إذا لم يكن هناك senderName، جلب الاسم
+        // إذا لم يكن هناك senderName مخزَّن، نجلبه من Firestore (مع cache)
         if (senderName.isEmpty) {
           senderName = await _getSenderName(senderId);
         }
@@ -211,8 +202,7 @@ class ChatService {
         ));
       }
 
-      messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-      yield messages;
+      return messages;
     });
   }
 

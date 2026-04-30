@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:typed_data';
+import 'dart:io';
 import '../services/auth_service.dart';
 import '../data/algeria_data.dart';
 
@@ -24,6 +27,8 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
   bool _obscureConfirm = true;
   bool _isGeneralist = false;
   String _error = '';
+
+  PlatformFile? _pickedDoc;
 
   String? _wilaya, _daira, _commune;
   List<String> _dairas = [];
@@ -65,40 +70,106 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
     });
   }
 
+  Future<void> _pickDocument() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+      withData: true,
+    );
+    if (result != null && result.files.isNotEmpty) {
+      setState(() => _pickedDoc = result.files.first);
+    }
+  }
+
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selected.isEmpty) {
-      setState(() => _error = 'Sélectionnez au moins une spécialité');
+    // ✅ إذا كان "avocat généraliste" لا يحتاج لاختيار تخصص
+    if (!_isGeneralist && _selected.isEmpty) {
+      setState(() => _error = 'Sélectionnez au moins une spécialité ou cochez "Avocat généraliste"');
       return;
     }
     if (_wilaya == null) {
       setState(() => _error = 'Veuillez sélectionner votre wilaya');
       return;
     }
+    if (_pickedDoc == null) {
+      setState(() => _error = 'Veuillez joindre un document justificatif');
+      return;
+    }
     setState(() { _loading = true; _error = ''; });
+
+    // ✅ قراءة bytes من المسار إذا كانت فارغة (مشكلة Android)
+    Uint8List? docBytes = _pickedDoc!.bytes;
+    if (docBytes == null && _pickedDoc!.path != null) {
+      try {
+        docBytes = await File(_pickedDoc!.path!).readAsBytes();
+      } catch (e) {
+        setState(() {
+          _loading = false;
+          _error = 'Impossible de lire le fichier. Essayez un autre.';
+        });
+        return;
+      }
+    }
+    if (docBytes == null) {
+      setState(() {
+        _loading = false;
+        _error = 'Fichier illisible. Veuillez choisir un autre document.';
+      });
+      return;
+    }
 
     final err = await _auth.registerLawyer(
       email: _emailCtrl.text.trim(),
       password: _passCtrl.text,
       name: _nameCtrl.text.trim(),
-      speciality: _selected.join(', '),
+      speciality: _isGeneralist ? 'Généraliste' : _selected.join(', '),
       phone: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
       experience: int.tryParse(_expCtrl.text),
       isGeneralist: _isGeneralist,
       wilaya: _wilaya,
       daira: _daira,
       commune: _commune,
+      documentBytes: docBytes,
+      documentName: _pickedDoc!.name,
     );
 
     if (!mounted) return;
     setState(() => _loading = false);
 
     if (err == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Inscription réussie ! Connectez-vous.'),
-        backgroundColor: Color(0xFF2E7D32),
-      ));
-      Navigator.pushReplacementNamed(context, '/lawyer-login');
+      if (!mounted) return;
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: _navyLight,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(children: [
+            Icon(Icons.hourglass_top_rounded, color: _gold),
+            SizedBox(width: 10),
+            Text('Demande envoyée', style: TextStyle(color: _textPrimary, fontWeight: FontWeight.w700)),
+          ]),
+          content: const Text(
+            'Votre dossier a été soumis avec succès.\n\n'
+            '1. Veuillez vérifier votre boîte mail et cliquer sur le lien de confirmation.\n'
+            '2. Un administrateur va examiner vos informations et votre document.\n\n'
+            'Vous pourrez vous connecter une fois votre email vérifié et votre compte approuvé.',
+            style: TextStyle(color: _textSecondary, height: 1.5),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _gold, foregroundColor: _navy,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: const Text('Compris', style: TextStyle(fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      );
+      if (mounted) Navigator.pushReplacementNamed(context, '/lawyer-login');
     } else {
       setState(() => _error = err);
     }
@@ -133,8 +204,16 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
                           validator: (v) => v!.isEmpty ? 'Champ requis' : null),
                       const SizedBox(height: 14),
                       _field(label: 'Téléphone', ctrl: _phoneCtrl,
-                          hint: '+213 6XX XXX XXX', icon: Icons.phone_outlined,
-                          keyboard: TextInputType.phone),
+                          hint: '0555123456', icon: Icons.phone_outlined,
+                          keyboard: TextInputType.phone,
+                          validator: (v) {
+                            if (v != null && v.isNotEmpty) {
+                              if (!RegExp(r'^0[567]\d{8}$').hasMatch(v)) {
+                                return 'Numéro invalide (ex: 0555123456)';
+                              }
+                            }
+                            return null;
+                          }),
                     ]),
 
                     const SizedBox(height: 24),
@@ -209,7 +288,65 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
 
                     const SizedBox(height: 24),
 
-                    // ── Section 4: Sécurité ──
+                    // ── Section 4: Document justificatif ──
+                    _sectionTitle('Document justificatif', Icons.upload_file_rounded),
+                    const SizedBox(height: 14),
+                    _card(children: [
+                      Text(
+                        'Joignez un document prouvant votre qualité d\'avocat (carte du barreau, diplôme, attestation, etc.)',
+                        style: TextStyle(color: _textSecondary.withOpacity(0.85), fontSize: 12, fontStyle: FontStyle.italic),
+                      ),
+                      const SizedBox(height: 14),
+                      GestureDetector(
+                        onTap: _loading ? null : _pickDocument,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: _navy,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: _pickedDoc != null ? _gold : Colors.white.withOpacity(0.1),
+                              width: _pickedDoc != null ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Row(children: [
+                            Icon(
+                              _pickedDoc != null ? Icons.check_circle_rounded : Icons.upload_file_outlined,
+                              color: _pickedDoc != null ? _gold : _textSecondary,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Text(
+                                _pickedDoc != null ? _pickedDoc!.name : 'Appuyez pour choisir un fichier',
+                                style: TextStyle(
+                                  color: _pickedDoc != null ? _textPrimary : _textSecondary,
+                                  fontSize: 13,
+                                  fontWeight: _pickedDoc != null ? FontWeight.w600 : FontWeight.normal,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (_pickedDoc != null)
+                                Text('${(_pickedDoc!.size / 1024).toStringAsFixed(1)} KB · PDF / Image',
+                                    style: TextStyle(color: _textSecondary, fontSize: 11))
+                              else
+                                Text('PDF, JPG, PNG acceptés',
+                                    style: TextStyle(color: _textSecondary.withOpacity(0.6), fontSize: 11)),
+                            ])),
+                            if (_pickedDoc != null)
+                              GestureDetector(
+                                onTap: () => setState(() => _pickedDoc = null),
+                                child: Icon(Icons.close_rounded, color: _textSecondary, size: 18),
+                              ),
+                          ]),
+                        ),
+                      ),
+                    ]),
+
+                    const SizedBox(height: 24),
+
+                    // ── Section 5: Sécurité ──
                     _sectionTitle('Sécurité', Icons.shield_outlined),
                     const SizedBox(height: 14),
                     _card(children: [
@@ -217,7 +354,7 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
                           hint: '••••••••', icon: Icons.lock_outline_rounded,
                           obscure: _obscurePass,
                           suffix: _toggleIcon(_obscurePass, () => setState(() => _obscurePass = !_obscurePass)),
-                          validator: (v) => v!.length < 6 ? 'Minimum 6 caractères' : null),
+                          validator: (v) => v!.length < 8 ? 'Minimum 8 caractères' : null),
                       const SizedBox(height: 14),
                       _field(label: 'Confirmer le mot de passe *', ctrl: _confirmCtrl,
                           hint: '••••••••', icon: Icons.lock_outline_rounded,

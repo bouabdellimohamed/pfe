@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LawyerModel {
   final String uid;
@@ -14,6 +13,7 @@ class LawyerModel {
   final String? wilaya;
   final String? daira;
   final String? commune;
+  final bool isVerified; // للتحقق من هوية المحامي
 
   // --- حقول الـ Scoring System الجديدة ---
   final double rating; // لـ 35% من السكور (مثلاً 4.5)
@@ -44,6 +44,7 @@ class LawyerModel {
     this.responseRate = 0.0,
     this.successfulDemands = 0,
     this.finalScore = 0.0,
+    this.isVerified = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -68,7 +69,8 @@ class LawyerModel {
       'responseRate': responseRate,
       'successfulDemands': successfulDemands,
       'finalScore': finalScore,
-      'createdAt': FieldValue.serverTimestamp(),
+      'isVerified': isVerified,
+      // ✅ لا نضع createdAt هنا — يُضاف فقط عند الإنشاء الأول في auth_service
     };
   }
 
@@ -94,6 +96,7 @@ class LawyerModel {
       responseRate: (map['responseRate'] ?? 0.0).toDouble(),
       successfulDemands: map['successfulDemands'] ?? 0,
       finalScore: (map['finalScore'] ?? 0.0).toDouble(),
+      isVerified: map['isVerified'] ?? false,
     );
   }
 }

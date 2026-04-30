@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/lawyer_model.dart';
 import 'lawyer_profile_screen.dart';
 
@@ -141,8 +142,16 @@ class LawyersResultScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: const Color(0xFFF5F7FA),
                         borderRadius: BorderRadius.circular(22),
-                        image: DecorationImage(image: NetworkImage(imageUrl), fit: BoxFit.cover),
                         border: Border.all(color: const Color(0xFFF1F1F1), width: 1.5),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: CachedNetworkImage(
+                          imageUrl: imageUrl,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                          errorWidget: (context, url, error) => const Icon(Icons.person, color: Colors.grey),
+                        ),
                       ),
                     ),
                     Positioned(
@@ -164,9 +173,22 @@ class LawyersResultScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        lawyer.name,
-                        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF263238)),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              lawyer.name,
+                              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF263238)),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (lawyer.isVerified)
+                            const Padding(
+                              padding: EdgeInsets.only(left: 4.0),
+                              child: Icon(Icons.verified_rounded, color: Colors.blue, size: 18),
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 3),
                       // ✅ عرض التخصصات كـ chips صغيرة

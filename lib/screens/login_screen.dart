@@ -46,8 +46,13 @@ class _UserSignUpScreenState extends State<UserSignUpScreen> {
       setState(() => _error = 'Les mots de passe ne correspondent pas');
       return;
     }
-    if (pass.length < 6) {
-      setState(() => _error = 'Mot de passe trop court (min 6 caractères)');
+    if (pass.length < 8) {
+      setState(() => _error = 'Mot de passe trop court (min 8 caractères)');
+      return;
+    }
+    final phone = _phoneCtrl.text.trim();
+    if (phone.isNotEmpty && !RegExp(r'^0[567]\d{8}$').hasMatch(phone)) {
+      setState(() => _error = 'Numéro invalide (ex: 0555123456)');
       return;
     }
 
@@ -70,7 +75,37 @@ class _UserSignUpScreenState extends State<UserSignUpScreen> {
     setState(() => _loading = false);
 
     if (result == null) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+      // ✅ بعد التسجيل: نُعلم المستخدم بالتحقق من إيميله أولاً
+      if (!mounted) return;
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(children: [
+            Icon(Icons.mark_email_read_outlined, color: Color(0xFF0052D4)),
+            SizedBox(width: 10),
+            Expanded(child: Text('Compte créé !', style: TextStyle(fontWeight: FontWeight.w700))),
+          ]),
+          content: const Text(
+            'Un lien de vérification a été envoyé à votre adresse email.\n\n'
+            'Veuillez cliquer sur ce lien pour activer votre compte, puis connectez-vous.',
+            style: TextStyle(height: 1.5),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0052D4),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: const Text('Compris', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      );
+      // بعد إغلاق الـ dialog، نعود لصفحة الـ Welcome
+      if (mounted) Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
     } else {
       setState(() => _error = result);
     }
@@ -129,7 +164,7 @@ class _UserSignUpScreenState extends State<UserSignUpScreen> {
               const SizedBox(height: 14),
               _field(
                 _phoneCtrl,
-                'Téléphone (optionnel)',
+                'Téléphone (optionnel, ex: 0555123456)',
                 Icons.phone_outlined,
                 type: TextInputType.phone,
               ),
@@ -311,12 +346,29 @@ class _UserSignUpScreenState extends State<UserSignUpScreen> {
                           ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: Text(
-                              error,
-                              style: TextStyle(
-                                color: Colors.red.shade700,
-                                fontSize: 13,
-                              ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  error,
+                                  style: TextStyle(
+                                    color: Colors.red.shade700,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                if (error.contains('vérifier votre email'))
+                                  TextButton(
+                                    onPressed: () async {
+                                      setState(() => loading = true);
+                                      final res = await auth.resendVerificationEmail(emailCtrl.text.trim(), passCtrl.text);
+                                      setState(() {
+                                        loading = false;
+                                        error = res ?? 'Rien renvoyé ! Vérifiez votre boîte mail.';
+                                      });
+                                    },
+                                    child: const Text('Renvoyer le lien', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                  ),
+                              ],
                             ),
                           ),
                         ],

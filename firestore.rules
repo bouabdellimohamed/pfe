@@ -2,30 +2,47 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+    // ── Helper: هل المستخدم أدمين؟ ──────────────────────────────
+    function isAdmin() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
+    // ── المستخدمون العاديون ──────────────────────────────────────
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read: if isAdmin();
+      allow update: if isAdmin();
+    }
+
+    // ── المحامون ─────────────────────────────────────────────────
     match /lawyers/{uid} {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.auth.uid == uid;
-      allow update: if request.auth != null;
+      allow update: if request.auth != null && request.auth.uid == uid;
+      allow update: if isAdmin(); // الأدمين يمكنه تحديث بيانات المحامي (قبول/رفض)
+      allow delete: if isAdmin();
     }
 
+    // ── الطلبات ───────────────────────────────────────────────────
     match /requests/{requestId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null
         && request.resource.data.userId == request.auth.uid;
       allow update: if request.auth != null;
+      allow delete: if isAdmin();
     }
 
+    // ── الاستشارات ────────────────────────────────────────────────
     match /consultations/{consultationId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null
         && request.resource.data.userId == request.auth.uid;
       allow update: if request.auth != null;
+      allow delete: if isAdmin();
     }
 
+    // ── المحادثات ─────────────────────────────────────────────────
     match /conversations/{convId} {
       allow read, write: if request.auth != null;
     }
@@ -34,13 +51,17 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
+    // ── التقييمات ─────────────────────────────────────────────────
     match /ratings/{ratingId} {
       allow read: if request.auth != null;
       allow write: if request.auth != null;
     }
 
+    // ── الأدمين ───────────────────────────────────────────────────
+    // القراءة: الأدمين يقرأ وثيقته الخاصة فقط
     match /admins/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
+      // لا write من التطبيق — يتم الإنشاء يدوياً عبر Firebase Console
     }
   }
 }

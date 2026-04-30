@@ -3,555 +3,560 @@ import 'post_request_screen.dart';
 import 'direct_search_screen.dart';
 import 'ai_assistant_screen.dart' show AIAssistantScreen;
 
+const _navy   = Color(0xFF0A1628);
+const _navyM  = Color(0xFF112240);
+const _gold   = Color(0xFFB8963E);
+const _bg     = Color(0xFFF5F7FA);
+const _grey   = Color(0xFF8896A5);
+
 class ChooseMethodScreen extends StatelessWidget {
   final VoidCallback? onBack;
-
   const ChooseMethodScreen({super.key, this.onBack});
 
   @override
   Widget build(BuildContext context) {
-    const Color royalBlue = Color(0xFF1976D2);
-    const Color darkText = Color(0xFF101010);
-
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: _bg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: darkText, size: 20),
-          onPressed: () {
-            if (onBack != null) {
-              onBack!();
-            } else {
-              Navigator.pop(context);
-            }
-          },
+          icon: const Icon(Icons.arrow_back_ios_new, color: _navy, size: 20),
+          onPressed: () => onBack != null ? onBack!() : Navigator.pop(context),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            const Text(
-              "Comment voulez-vous\nprocéder ?",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: darkText,
-                fontSize: 30,
-                fontWeight: FontWeight.w800,
-                height: 1.2,
-              ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(24, 8, 24, 40),
+        child: Column(children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [_navy, _navyM],
+                  begin: Alignment.topLeft, end: Alignment.bottomRight),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [BoxShadow(color: _navy.withOpacity(0.25),
+                  blurRadius: 20, offset: const Offset(0, 8))],
             ),
-            Expanded(
-              child: Center(
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Option 1: Recherche directe (type d'affaire connu)
-                      _buildPremiumOptionCard(
-                        context,
-                        icon: Icons.search_rounded,
-                        title: "Je connais mon affaire",
-                        subtitle:
-                            "Sélectionnez le type d'affaire et la localisation",
-                        primaryColor: royalBlue,
-                        badge: null,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const DirectSearchScreen(),
-                            ),
-                          );
-                        },
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // Option 2: IA / Questionnaire (type d'affaire inconnu)
-                      _buildPremiumOptionCard(
-                        context,
-                        icon: Icons.psychology_rounded,
-                        title: "Je ne sais pas",
-                        subtitle: "Utilisez l'IA ou un questionnaire guidé",
-                        primaryColor: Colors.purple,
-                        badge: 'IA',
-                        onTap: () {
-                          _showAIOrQuestionnaireDialog(context);
-                        },
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // Option 3: Publier une demande
-                      _buildPremiumOptionCard(
-                        context,
-                        icon: Icons.mail_outline_rounded,
-                        title: "Demande d'avocat",
-                        subtitle: "Publiez votre demande, recevez des offres",
-                        primaryColor: Colors.teal,
-                        badge: null,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const PostRequestScreen(),
-                            ),
-                          );
-                        },
-                      ),
-
-                      const SizedBox(height: 50),
-                    ],
-                  ),
+            child: Column(children: [
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: _gold.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: _gold.withOpacity(0.3)),
                 ),
+                child: const Icon(Icons.balance_rounded, color: _gold, size: 32),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showAIOrQuestionnaireDialog(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        return Padding(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Comment souhaitez-vous\nêtre guidé ?',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 24),
-
-              // IA
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.purple.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.auto_awesome_rounded,
-                    color: Colors.purple,
-                  ),
-                ),
-                title: const Text(
-                  'Intelligence Artificielle',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-                ),
-                subtitle: const Text(
-                  'Décrivez votre situation, l\'IA identifie votre besoin',
-                  style: TextStyle(fontSize: 13),
-                ),
-                trailing: const Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 14,
-                  color: Colors.grey,
-                ),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const AIAssistantScreen(),
-                    ),
-                  );
-                },
-              ),
-
-              const Divider(),
-
-              // Questionnaire
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.quiz_outlined, color: Colors.orange),
-                ),
-                title: const Text(
-                  'Questionnaire guidé',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-                ),
-                subtitle: const Text(
-                  'Répondez à quelques questions pour identifier votre cas',
-                  style: TextStyle(fontSize: 13),
-                ),
-                trailing: const Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 14,
-                  color: Colors.grey,
-                ),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _startQuestionnaire(context);
-                },
-              ),
-
-              const SizedBox(height: 10),
-            ],
+              const SizedBox(height: 14),
+              const Text('Comment puis-je vous aider ?',
+                  style: TextStyle(color: Colors.white, fontSize: 22,
+                      fontWeight: FontWeight.w900), textAlign: TextAlign.center),
+              const SizedBox(height: 6),
+              Text('Choisissez la méthode qui vous convient',
+                  style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+                  textAlign: TextAlign.center),
+            ]),
           ),
-        );
-      },
-    );
-  }
+          const SizedBox(height: 28),
 
-  void _startQuestionnaire(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const _QuestionnaireScreen()),
-    );
-  }
+          _OptionCard(icon: Icons.search_rounded, title: 'Je connais mon affaire',
+              subtitle: 'Sélectionnez directement votre domaine juridique',
+              color: const Color(0xFF1565C0),
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const DirectSearchScreen()))),
+          const SizedBox(height: 14),
 
-  Widget _buildPremiumOptionCard(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color primaryColor,
-    required VoidCallback onTap,
-    String? badge,
-  }) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        boxShadow: [
-          BoxShadow(
-            color: primaryColor.withOpacity(0.12),
-            blurRadius: 30,
-            offset: const Offset(0, 10),
-            spreadRadius: 1,
-          ),
-        ],
-      ),
-      child: Card(
-        elevation: 0,
-        color: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28),
-          side: BorderSide(color: primaryColor.withOpacity(0.1), width: 1),
-        ),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(28),
-          splashColor: primaryColor.withOpacity(0.05),
-          child: Padding(
-            padding: const EdgeInsets.all(26.0),
-            child: Row(
-              children: [
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: primaryColor.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(icon, size: 30, color: primaryColor),
-                    ),
-                    if (badge != null)
-                      Positioned(
-                        top: -4,
-                        right: -4,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: primaryColor,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            badge,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 18,
-                          color: Color(0xFF101010),
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        subtitle,
-                        style: const TextStyle(
-                          color: Color(0xFF757575),
-                          fontSize: 13,
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 14,
-                  color: Colors.grey[300],
-                ),
-              ],
-            ),
-          ),
-        ),
+          _OptionCard(icon: Icons.quiz_rounded, title: 'Questionnaire guidé',
+              subtitle: 'Répondez à quelques questions pour identifier votre cas',
+              color: const Color(0xFF6B46C1), badge: 'SMART',
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const _QuestionnaireScreen()))),
+          const SizedBox(height: 14),
+
+          _OptionCard(icon: Icons.auto_awesome_rounded, title: 'Assistant IA',
+              subtitle: 'Décrivez librement votre situation en texte',
+              color: const Color(0xFF7C3AED), badge: 'IA',
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const AIAssistantScreen()))),
+          const SizedBox(height: 14),
+
+          _OptionCard(icon: Icons.mail_outline_rounded, title: 'Publier une demande',
+              subtitle: 'Les avocats vous contactent directement',
+              color: const Color(0xFF0D7C66),
+              onTap: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const PostRequestScreen()))),
+        ]),
       ),
     );
   }
 }
 
-// ── QUESTIONNAIRE SCREEN ────────────────────────────────────────
+class _OptionCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final String? badge;
+  final VoidCallback onTap;
+
+  const _OptionCard({required this.icon, required this.title,
+      required this.subtitle, required this.color,
+      required this.onTap, this.badge});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withOpacity(0.1)),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04),
+              blurRadius: 12, offset: const Offset(0, 4))],
+        ),
+        child: Row(children: [
+          Stack(clipBehavior: Clip.none, children: [
+            Container(width: 56, height: 56,
+                decoration: BoxDecoration(color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16)),
+                child: Icon(icon, color: color, size: 28)),
+            if (badge != null)
+              Positioned(top: -6, right: -8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(color: color,
+                      borderRadius: BorderRadius.circular(8)),
+                  child: Text(badge!, style: const TextStyle(color: Colors.white,
+                      fontSize: 9, fontWeight: FontWeight.w800)),
+                )),
+          ]),
+          const SizedBox(width: 16),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, style: const TextStyle(fontSize: 16,
+                fontWeight: FontWeight.w800, color: _navy)),
+            const SizedBox(height: 4),
+            Text(subtitle, style: const TextStyle(color: _grey, fontSize: 12, height: 1.3)),
+          ])),
+          Icon(Icons.arrow_forward_ios_rounded, size: 14, color: color.withOpacity(0.4)),
+        ]),
+      ),
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// QUESTIONNAIRE — شجرة قرارات ذكية
+// ══════════════════════════════════════════════════════════════════
+class _QNode {
+  final String id;
+  final String question;
+  final String? subtitle;
+  final List<_QOption> options;
+  const _QNode({required this.id, required this.question,
+      this.subtitle, required this.options});
+}
+
+class _QOption {
+  final String label;
+  final String? emoji;
+  final String? nextId;
+  final String? result;
+  const _QOption({required this.label, this.emoji, this.nextId, this.result});
+}
+
+const List<_QNode> _tree = [
+  _QNode(id: 'root',
+    question: 'Quel est le domaine principal de votre problème ?',
+    subtitle: 'Choisissez la catégorie la plus proche de votre situation',
+    options: [
+      _QOption(label: 'Famille & Personnes',         emoji: '👨‍👩‍👧', nextId: 'famille'),
+      _QOption(label: 'Travail & Emploi',             emoji: '💼', nextId: 'travail'),
+      _QOption(label: 'Bien immobilier',              emoji: '🏠', nextId: 'immo'),
+      _QOption(label: 'Business & Contrats',          emoji: '🤝', nextId: 'business'),
+      _QOption(label: 'Justice & Pénal',              emoji: '⚖️', nextId: 'penal'),
+      _QOption(label: 'Administration & État',        emoji: '🏛️', nextId: 'admin'),
+      _QOption(label: 'Autre / Je ne sais pas',       emoji: '❓', nextId: 'autre'),
+    ]),
+
+  _QNode(id: 'famille',
+    question: 'Quel est votre problème familial ?',
+    options: [
+      _QOption(label: 'Divorce ou séparation',             emoji: '💔', result: 'Droit familial'),
+      _QOption(label: 'Garde des enfants / Pension',       emoji: '👶', result: 'Droit familial'),
+      _QOption(label: 'Héritage / Succession',             emoji: '📜', result: 'Droit familial'),
+      _QOption(label: 'Violence conjugale / familiale',    emoji: '🚨', result: 'Droit pénal'),
+      _QOption(label: 'Adoption / Tutelle',                emoji: '🤲', result: 'Droit familial'),
+      _QOption(label: 'Mariage / Contrat de mariage',      emoji: '💍', result: 'Droit civil'),
+    ]),
+
+  _QNode(id: 'travail',
+    question: 'Quel est votre problème lié au travail ?',
+    options: [
+      _QOption(label: 'Licenciement abusif / injustifié',  emoji: '🔴', result: 'Droit du travail'),
+      _QOption(label: 'Salaire impayé / retard',           emoji: '💰', result: 'Droit du travail'),
+      _QOption(label: 'Harcèlement au travail',            emoji: '⚠️', result: 'Droit du travail'),
+      _QOption(label: 'Accident du travail',               emoji: '🏥', result: 'Droit du travail'),
+      _QOption(label: 'Contrat de travail non respecté',   emoji: '📄', result: 'Droit du travail'),
+      _QOption(label: 'Litige avec une entreprise',        emoji: '🏢', result: 'Droit commercial'),
+    ]),
+
+  _QNode(id: 'immo',
+    question: 'Quel est votre problème immobilier ?',
+    options: [
+      _QOption(label: "Achat / Vente d'un bien",          emoji: '🏡', result: 'Droit immobilier'),
+      _QOption(label: 'Location / Bail / Expulsion',       emoji: '🔑', result: 'Droit immobilier'),
+      _QOption(label: 'Construction / Permis',             emoji: '🔨', result: 'Droit immobilier'),
+      _QOption(label: 'Litige avec voisinage',             emoji: '🤼', result: 'Droit immobilier'),
+      _QOption(label: "Expropriation par l'État",         emoji: '⚡', result: 'Droit administratif'),
+      _QOption(label: 'Copropriété / Syndic',              emoji: '🏢', result: 'Droit immobilier'),
+    ]),
+
+  _QNode(id: 'business',
+    question: 'Quel est votre problème commercial ?',
+    options: [
+      _QOption(label: 'Contrat non respecté',              emoji: '📋', result: 'Droit commercial'),
+      _QOption(label: 'Création / Dissolution société',    emoji: '🏭', result: 'Droit des sociétés'),
+      _QOption(label: 'Faillite / Dettes',                 emoji: '📉', result: 'Droit commercial'),
+      _QOption(label: 'Arnaque / Escroquerie',             emoji: '⚠️', nextId: 'escroquerie'),
+      _QOption(label: 'Impôts / Taxes',                    emoji: '💸', result: 'Droit fiscal'),
+      _QOption(label: 'Brevet / Marque / Copyright',       emoji: '💡', result: 'Propriété Intellectuelle'),
+    ]),
+
+  _QNode(id: 'escroquerie',
+    question: "L'arnaque est de quelle nature ?",
+    options: [
+      _QOption(label: 'Transaction commerciale',           emoji: '💼', result: 'Droit commercial'),
+      _QOption(label: 'Achat en ligne / Fraude',           emoji: '💻', result: 'Droit pénal'),
+      _QOption(label: 'Faux documents / Usurpation',       emoji: '🪪', result: 'Droit pénal'),
+      _QOption(label: 'Arnaque immobilière',               emoji: '🏠', result: 'Droit immobilier'),
+    ]),
+
+  _QNode(id: 'penal',
+    question: 'Quel est votre problème judiciaire ?',
+    options: [
+      _QOption(label: "Je suis victime d'une agression",  emoji: '🚨', result: 'Droit pénal'),
+      _QOption(label: 'Je suis accusé / poursuivi',        emoji: '⚖️', result: 'Droit pénal'),
+      _QOption(label: 'Violation de contrat / Fraude',     emoji: '📄', result: 'Droit civil'),
+      _QOption(label: 'Diffamation / Injure / Calomnie',   emoji: '🗣️', result: 'Droit pénal'),
+      _QOption(label: 'Cybercriminalité',                  emoji: '💻', result: 'Droit pénal'),
+    ]),
+
+  _QNode(id: 'admin',
+    question: 'Quel est votre problème administratif ?',
+    options: [
+      _QOption(label: 'Refus de permis / Autorisation',   emoji: '🚫', result: 'Droit administratif'),
+      _QOption(label: "Litige avec l'État / Commune",    emoji: '🏛️', result: 'Droit administratif'),
+      _QOption(label: 'Nationalité / Visa / Documents',   emoji: '📘', result: 'Droit administratif'),
+      _QOption(label: "Marché public / Appel d'offres",  emoji: '📊', result: 'Droit administratif'),
+      _QOption(label: 'Recours contre une décision',      emoji: '📩', result: 'Droit administratif'),
+    ]),
+
+  _QNode(id: 'autre',
+    question: 'Pouvez-vous préciser votre situation ?',
+    options: [
+      _QOption(label: 'Problème avec une personne',              emoji: '👤', result: 'Droit civil'),
+      _QOption(label: 'Problème avec une entreprise',            emoji: '🏢', result: 'Droit commercial'),
+      _QOption(label: "Problème avec l'administration",         emoji: '🏛️', result: 'Droit administratif'),
+      _QOption(label: 'Problème personnel / familial',           emoji: '👨‍👩‍👧', result: 'Droit familial'),
+      _QOption(label: 'Affaire pénale / judiciaire',             emoji: '⚖️', result: 'Droit pénal'),
+    ]),
+];
+
+_QNode? _findNode(String id) {
+  try { return _tree.firstWhere((n) => n.id == id); } catch (_) { return null; }
+}
+
 class _QuestionnaireScreen extends StatefulWidget {
   const _QuestionnaireScreen();
-
   @override
   State<_QuestionnaireScreen> createState() => _QuestionnaireScreenState();
 }
 
 class _QuestionnaireScreenState extends State<_QuestionnaireScreen> {
-  int _step = 0;
-  final Map<int, String> _answers = {};
+  final List<_QNode> _history = [];
+  _QNode? _current;
+  String? _result;
+  String? _selectedOption;
 
-  static const Color primary = Color(0xFF1565C0);
+  @override
+  void initState() { super.initState(); _current = _findNode('root'); }
 
-  final List<Map<String, dynamic>> _questions = [
-    {
-      'question': 'Votre situation concerne-t-elle la famille ?',
-      'options': [
-        'Divorce / Séparation',
-        'Garde d\'enfants',
-        'Succession / Héritage',
-        'Non, autre chose',
-      ],
-    },
-    {
-      'question': 'Avez-vous un litige avec une entreprise ou un employeur ?',
-      'options': [
-        'Licenciement / Travail',
-        'Contrat commercial',
-        'Consommateur / Achat',
-        'Non, autre chose',
-      ],
-    },
-    {
-      'question':
-          'Avez-vous subi un préjudice (accident, arnaque, agression) ?',
-      'options': [
-        'Accident corporel',
-        'Escroquerie / Fraude',
-        'Agression / Violence',
-        'Non, autre chose',
-      ],
-    },
-    {
-      'question': 'Avez-vous un problème lié à un bien immobilier ?',
-      'options': [
-        'Achat / Vente',
-        'Location / Expulsion',
-        'Construction / Voisinage',
-        'Non, autre chose',
-      ],
-    },
-  ];
+  void _onOptionTap(_QOption option) {
+    setState(() => _selectedOption = option.label);
+    Future.delayed(const Duration(milliseconds: 250), () {
+      if (!mounted) return;
+      setState(() {
+        _selectedOption = null;
+        if (option.result != null) {
+          _result = option.result;
+          _current = null;
+        } else if (option.nextId != null) {
+          _history.add(_current!);
+          _current = _findNode(option.nextId!);
+        }
+      });
+    });
+  }
 
-  String _getRecommendation() {
-    for (final a in _answers.values) {
-      if (a.contains('Divorce') ||
-          a.contains('Séparation') ||
-          a.contains('Garde') ||
-          a.contains('Succession')) return 'Droit de la Famille';
-      if (a.contains('Licenciement') || a.contains('Travail'))
-        return 'Droit du Travail';
-      if (a.contains('commercial') || a.contains('Contrat'))
-        return 'Droit Commercial';
-      if (a.contains('Accident') ||
-          a.contains('Agression') ||
-          a.contains('Escroquerie')) return 'Droit Pénal';
-      if (a.contains('immobilier') ||
-          a.contains('Location') ||
-          a.contains('Construction')) return 'Droit Immobilier';
-    }
-    return 'Droit Civil';
+  void _goBack() {
+    setState(() {
+      if (_result != null) {
+        _result = null;
+        _current = _history.isNotEmpty ? _history.last : _findNode('root');
+      } else if (_history.isNotEmpty) {
+        _current = _history.removeLast();
+      } else {
+        Navigator.pop(context);
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final done = _step >= _questions.length;
-
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: _bg,
       appBar: AppBar(
-        title: Text(
-          done ? 'Résultat' : 'Question ${_step + 1}/${_questions.length}',
-        ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: _navy, size: 20),
+          onPressed: _goBack,
+        ),
+        title: Text(
+          _result != null ? 'Résultat' : 'Étape ${_history.length + 1}',
+          style: const TextStyle(color: _navy, fontWeight: FontWeight.w800, fontSize: 17),
+        ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: done ? _buildResult() : _buildQuestion(_questions[_step]),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 280),
+        transitionBuilder: (child, anim) => SlideTransition(
+          position: Tween<Offset>(
+              begin: const Offset(0.05, 0), end: Offset.zero).animate(anim),
+          child: FadeTransition(opacity: anim, child: child),
+        ),
+        child: _result != null
+            ? _buildResult(_result!, key: const ValueKey('result'))
+            : _buildQuestion(_current!, key: ValueKey(_current!.id)),
       ),
     );
   }
 
-  Widget _buildQuestion(Map<String, dynamic> q) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        LinearProgressIndicator(
-          value: (_step + 1) / _questions.length,
-          backgroundColor: Colors.grey.shade200,
-          color: primary,
-        ),
-        const SizedBox(height: 32),
-        Text(
-          q['question'],
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-            height: 1.3,
-          ),
-        ),
-        const SizedBox(height: 28),
-        ...(q['options'] as List<String>).map(
-          (opt) => Padding(
-            padding: const EdgeInsets.only(bottom: 14),
-            child: InkWell(
-              onTap: () {
-                setState(() {
-                  _answers[_step] = opt;
-                  // إذا لم يكن "Non, autre chose"، اذهب مباشرة للنتيجة
-                  if (opt != 'Non, autre chose') {
-                    _step = _questions.length;
-                  } else {
-                    // وإلا، انتقل للسؤال التالي
-                    _step++;
-                  }
-                });
-              },
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade200),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(
-                  opt,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
+  Widget _buildQuestion(_QNode node, {Key? key}) {
+    return SingleChildScrollView(
+      key: key,
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        if (_history.isNotEmpty) ...[
+          ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: LinearProgressIndicator(
+              value: _history.length / (_tree.length.toDouble()),
+              backgroundColor: Colors.grey.shade200,
+              valueColor: const AlwaysStoppedAnimation(_gold),
+              minHeight: 4,
             ),
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildResult() {
-    final recommendation = _getRecommendation();
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
+          const SizedBox(height: 16),
+        ],
         Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: primary.withOpacity(0.08),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.check_circle_outline_rounded,
-            size: 60,
-            color: primary,
-          ),
-        ),
-        const SizedBox(height: 24),
-        const Text(
-          'Nous recommandons',
-          style: TextStyle(color: Colors.grey, fontSize: 14),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          recommendation,
-          style: const TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.w900,
-            color: primary,
-          ),
-        ),
-        const SizedBox(height: 32),
-        SizedBox(
           width: double.infinity,
-          height: 56,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(colors: [_navy, _navyM],
+                begin: Alignment.topLeft, end: Alignment.bottomRight),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: _gold.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                _history.isEmpty ? 'Catégorie principale' : 'Précisez',
+                style: const TextStyle(color: _gold, fontSize: 11, fontWeight: FontWeight.w700),
               ),
             ),
-            onPressed: () {
-              // ✅ يفتح DirectSearchScreen بالتخصص الموصى به مباشرةً
-              Navigator.pop(context); // أغلق الـ questionnaire
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => DirectSearchScreen(
-                    preselectedSpeciality: recommendation,
-                  ),
-                ),
-              );
-            },
-            child: const Text(
-              'Chercher un avocat',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
+            const SizedBox(height: 10),
+            Text(node.question, style: const TextStyle(color: Colors.white,
+                fontSize: 18, fontWeight: FontWeight.w800, height: 1.3)),
+            if (node.subtitle != null) ...[
+              const SizedBox(height: 6),
+              Text(node.subtitle!, style: TextStyle(
+                  color: Colors.white.withOpacity(0.6), fontSize: 12, height: 1.4)),
+            ],
+          ]),
+        ),
+        const SizedBox(height: 18),
+        ...node.options.map((opt) => _OptionTile(
+          option: opt, isSelected: _selectedOption == opt.label,
+          onTap: () => _onOptionTap(opt),
+        )),
+      ]),
+    );
+  }
+
+  Widget _buildResult(String recommendation, {Key? key}) {
+    final icons = <String, IconData>{
+      'Droit familial': Icons.family_restroom_rounded,
+      'Droit pénal': Icons.gavel_rounded,
+      'Droit commercial': Icons.handshake_rounded,
+      'Droit civil': Icons.balance_rounded,
+      'Droit immobilier': Icons.home_rounded,
+      'Droit administratif': Icons.account_balance_rounded,
+      'Droit du travail': Icons.work_rounded,
+      'Droit des sociétés': Icons.business_rounded,
+      'Droit fiscal': Icons.receipt_long_rounded,
+      'Propriété Intellectuelle': Icons.lightbulb_rounded,
+    };
+
+    return SingleChildScrollView(
+      key: key,
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
+      child: Column(children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(colors: [_navy, _navyM],
+                begin: Alignment.topLeft, end: Alignment.bottomRight),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [BoxShadow(color: _navy.withOpacity(0.25),
+                blurRadius: 20, offset: const Offset(0, 8))],
+          ),
+          child: Column(children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: _gold.withOpacity(0.15), shape: BoxShape.circle,
+                border: Border.all(color: _gold.withOpacity(0.3)),
               ),
+              child: Icon(icons[recommendation] ?? Icons.balance_rounded,
+                  color: _gold, size: 40),
+            ),
+            const SizedBox(height: 16),
+            const Text('Nous recommandons',
+                style: TextStyle(color: Colors.white60, fontSize: 13)),
+            const SizedBox(height: 8),
+            Text(recommendation, style: const TextStyle(color: Colors.white,
+                fontSize: 22, fontWeight: FontWeight.w900),
+                textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: _gold.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: _gold.withOpacity(0.3)),
+              ),
+              child: const Text('Basé sur vos réponses',
+                  style: TextStyle(color: _gold, fontSize: 11, fontWeight: FontWeight.w600)),
+            ),
+          ]),
+        ),
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade200)),
+          child: Row(children: [
+            const Icon(Icons.info_outline_rounded, color: _gold, size: 20),
+            const SizedBox(width: 12),
+            Expanded(child: Text(
+              'Notre système a analysé vos réponses et identifié le domaine juridique le plus adapté.',
+              style: TextStyle(color: _grey, fontSize: 12, height: 1.4),
+            )),
+          ]),
+        ),
+        const SizedBox(height: 20),
+        SizedBox(
+          width: double.infinity, height: 56,
+          child: ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(
+                  builder: (_) => DirectSearchScreen(preselectedSpeciality: recommendation)));
+            },
+            icon: const Icon(Icons.search_rounded, size: 20),
+            label: const Text('Chercher un avocat',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _gold, foregroundColor: _navy,
+              elevation: 4, shadowColor: _gold.withOpacity(0.4),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             ),
           ),
         ),
-      ],
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity, height: 48,
+          child: OutlinedButton.icon(
+            onPressed: () => setState(() {
+              _history.clear(); _result = null; _current = _findNode('root');
+            }),
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text('Recommencer', style: TextStyle(fontWeight: FontWeight.w600)),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: _navy,
+              side: BorderSide(color: _navy.withOpacity(0.2)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+class _OptionTile extends StatelessWidget {
+  final _QOption option;
+  final bool isSelected;
+  final VoidCallback onTap;
+  const _OptionTile({required this.option, required this.isSelected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        decoration: BoxDecoration(
+          color: isSelected ? _navy : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? _navy : Colors.grey.shade200,
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: [BoxShadow(
+            color: isSelected ? _navy.withOpacity(0.15) : Colors.black.withOpacity(0.03),
+            blurRadius: isSelected ? 12 : 6,
+            offset: const Offset(0, 3),
+          )],
+        ),
+        child: Row(children: [
+          if (option.emoji != null) ...[
+            Text(option.emoji!, style: const TextStyle(fontSize: 22)),
+            const SizedBox(width: 14),
+          ],
+          Expanded(child: Text(option.label, style: TextStyle(
+              fontSize: 15, fontWeight: FontWeight.w600,
+              color: isSelected ? Colors.white : _navy))),
+          Icon(
+            option.result != null
+                ? Icons.check_circle_outline_rounded
+                : Icons.arrow_forward_ios_rounded,
+            size: isSelected ? 18 : 14,
+            color: isSelected ? _gold
+                : (option.result != null ? _gold : Colors.grey.shade300),
+          ),
+        ]),
+      ),
     );
   }
 }

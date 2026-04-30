@@ -1,5 +1,7 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
 import '../models/consultation_model.dart';
 import 'chat_thread_screen.dart';
@@ -17,11 +19,8 @@ class _LawyerRequestsScreenState extends State<LawyerRequestsScreen>
   final _uid = FirebaseAuth.instance.currentUser?.uid ?? '';
   List<String> _mySpecialities = []; // ✅ تخصصات المحامي الحالي
 
-  static const _navy = Color(0xFF0D1B2A);
-  static const _navyLight = Color(0xFF1B2D42);
   static const _gold = Color(0xFFC9A84C);
-  static const _textPrimary = Color(0xFFF0EDE8);
-  static const _textSecondary = Color(0xFF8A9BB0);
+  static const _goldLight = Color(0xFFE2C47A);
 
   @override
   void initState() {
@@ -53,30 +52,50 @@ class _LawyerRequestsScreenState extends State<LawyerRequestsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _navy,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: _navyLight,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         automaticallyImplyLeading: false,
-        title: const Text('Publications & Consultations',
-            style: TextStyle(color: _textPrimary, fontSize: 17, fontWeight: FontWeight.w700)),
+        flexibleSpace: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(color: Colors.black.withOpacity(0.3)),
+          ),
+        ),
+        title: Text('Publications & Consultations',
+            style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
         bottom: TabBar(
           controller: _tabs,
           labelColor: _gold,
-          unselectedLabelColor: _textSecondary,
+          unselectedLabelColor: Colors.white54,
           indicatorColor: _gold,
-          indicatorWeight: 2.5,
+          indicatorWeight: 3,
+          labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13),
+          unselectedLabelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w400, fontSize: 13),
           tabs: const [
-            Tab(icon: Icon(Icons.inbox_outlined, size: 20), text: 'Publications'),
-            Tab(icon: Icon(Icons.chat_bubble_outline, size: 20), text: 'Consultations'),
+            Tab(icon: Icon(Icons.inbox_outlined, size: 22), text: 'Publications'),
+            Tab(icon: Icon(Icons.chat_bubble_outline, size: 22), text: 'Consultations'),
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabs,
-        children: [
-          _RequestsTab(uid: _uid, auth: _auth, specialities: _mySpecialities),
-          _ConsultationsTab(uid: _uid, auth: _auth),
-        ],
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SafeArea(
+          child: TabBarView(
+            controller: _tabs,
+            children: [
+              _RequestsTab(uid: _uid, auth: _auth, specialities: _mySpecialities),
+              _ConsultationsTab(uid: _uid, auth: _auth),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -91,8 +110,7 @@ class _RequestsTab extends StatelessWidget {
   final List<String> specialities;
   const _RequestsTab({required this.uid, required this.auth, required this.specialities});
 
-  static const _navy = Color(0xFF0D1B2A);
-  static const _textSecondary = Color(0xFF8A9BB0);
+  static const _gold = Color(0xFFC9A84C);
 
   @override
   Widget build(BuildContext context) {
@@ -100,30 +118,29 @@ class _RequestsTab extends StatelessWidget {
       stream: auth.getOpenRequests(lawyerSpecialities: specialities),
       builder: (ctx, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFFC9A84C)));
+          return const Center(child: CircularProgressIndicator(color: _gold));
         }
         if (snap.hasError) {
           return Center(child: Padding(
             padding: const EdgeInsets.all(24),
             child: Text('Erreur:\n${snap.error}',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: _textSecondary, height: 1.5)),
+                style: GoogleFonts.poppins(color: Colors.white70, height: 1.5)),
           ));
         }
         final list = snap.data ?? [];
         if (list.isEmpty) {
-          return const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.inbox_outlined, size: 56, color: Color(0xFF8A9BB0)),
-            SizedBox(height: 14),
+          return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.inbox_outlined, size: 56, color: Colors.white54),
+            const SizedBox(height: 14),
             Text('Aucune publication disponible',
-                style: TextStyle(color: Color(0xFF8A9BB0), fontSize: 15,
-                    decoration: TextDecoration.none)),
+                style: GoogleFonts.poppins(color: Colors.white54, fontSize: 15)),
           ]));
         }
         return ListView.separated(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           itemCount: list.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 10),
+          separatorBuilder: (_, __) => const SizedBox(height: 16),
           itemBuilder: (_, i) => _RequestCard(r: list[i], uid: uid, auth: auth),
         );
       },
@@ -144,10 +161,8 @@ class _RequestCardState extends State<_RequestCard> {
   bool _expanded = false;
   bool _openingChat = false;
 
-  static const _navyCard = Color(0xFF162233);
   static const _gold = Color(0xFFC9A84C);
-  static const _textPrimary = Color(0xFFF0EDE8);
-  static const _textSecondary = Color(0xFF8A9BB0);
+  static const _goldLight = Color(0xFFE2C47A);
 
   bool get _responded => widget.r.respondedLawyerIds.contains(widget.uid);
 
@@ -156,67 +171,77 @@ class _RequestCardState extends State<_RequestCard> {
     final r = widget.r;
     return Container(
       decoration: BoxDecoration(
-        color: _navyCard, borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0x14FFFFFF)),
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 10, offset: const Offset(0, 4)),
+        ]
       ),
       child: InkWell(
         onTap: () => setState(() => _expanded = !_expanded),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(18),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               Expanded(child: Text(r.title,
-                  style: const TextStyle(fontWeight: FontWeight.w700,
-                      fontSize: 14, color: _textPrimary))),
+                  style: GoogleFonts.outfit(fontWeight: FontWeight.bold,
+                      fontSize: 16, color: Colors.white))),
               Icon(_expanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                  color: _textSecondary),
+                  color: Colors.white54),
             ]),
-            const SizedBox(height: 6),
+            const SizedBox(height: 10),
             Row(children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _gold.withOpacity(0.12), borderRadius: BorderRadius.circular(6)),
-                child: Text(r.type, style: const TextStyle(color: _gold, fontSize: 11)),
+                  color: _gold.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _gold.withOpacity(0.3)),
+                ),
+                child: Text(r.type, style: GoogleFonts.poppins(color: _goldLight, fontSize: 11, fontWeight: FontWeight.w500)),
               ),
               const Spacer(),
-              const Icon(Icons.person_outline_rounded, size: 12, color: Color(0xFF8A9BB0)),
+              const Icon(Icons.person_outline_rounded, size: 14, color: Colors.white54),
               const SizedBox(width: 4),
               Text(r.userFullName,
-                  style: const TextStyle(color: Color(0xFF8A9BB0), fontSize: 11)),
+                  style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12)),
             ]),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text(r.description,
                 maxLines: _expanded ? null : 2,
                 overflow: _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
-                style: TextStyle(color: _textSecondary.withOpacity(0.85), fontSize: 12, height: 1.4)),
+                style: GoogleFonts.poppins(color: Colors.white.withOpacity(0.85), fontSize: 13, height: 1.5)),
             if (_expanded) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               SizedBox(
-                width: double.infinity, height: 44,
+                width: double.infinity, height: 48,
                 child: ElevatedButton.icon(
                   onPressed: _openingChat ? null : _openChat,
                   icon: Icon(
                     _openingChat ? Icons.hourglass_bottom_rounded
                         : _responded ? Icons.check_circle_rounded : Icons.reply_rounded,
-                    size: 16),
+                    size: 18),
                   label: Text(_openingChat ? 'Ouverture...'
-                      : _responded ? 'Continuer le chat' : 'Répondre'),
+                      : _responded ? 'Continuer le chat' : 'Répondre',
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _responded ? const Color(0xFF2E7D32) : _gold,
-                    foregroundColor: const Color(0xFF0D1B2A),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    backgroundColor: _responded ? const Color(0xFF4CAF50) : _gold,
+                    foregroundColor: Colors.black87,
+                    elevation: 4,
+                    shadowColor: (_responded ? const Color(0xFF4CAF50) : _gold).withOpacity(0.4),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ),
             ],
-            const SizedBox(height: 6),
+            const SizedBox(height: 12),
             Row(children: [
-              const Icon(Icons.people_outline_rounded, size: 11, color: Color(0xFF8A9BB0)),
+              const Icon(Icons.people_outline_rounded, size: 14, color: Colors.white54),
               const SizedBox(width: 4),
               Text('${r.respondedLawyerIds.length} réponse(s)',
-                  style: const TextStyle(color: Color(0xFF8A9BB0), fontSize: 11)),
+                  style: GoogleFonts.poppins(color: Colors.white54, fontSize: 12)),
             ]),
           ]),
         ),
@@ -254,7 +279,7 @@ class _ConsultationsTab extends StatelessWidget {
   final AuthService auth;
   const _ConsultationsTab({required this.uid, required this.auth});
 
-  static const _textSecondary = Color(0xFF8A9BB0);
+  static const _gold = Color(0xFFC9A84C);
 
   @override
   Widget build(BuildContext context) {
@@ -262,22 +287,21 @@ class _ConsultationsTab extends StatelessWidget {
       stream: auth.getAllConsultations(),
       builder: (ctx, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFFC9A84C)));
+          return const Center(child: CircularProgressIndicator(color: _gold));
         }
         final list = snap.data ?? [];
         if (list.isEmpty) {
-          return const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.chat_bubble_outline, size: 56, color: Color(0xFF8A9BB0)),
-            SizedBox(height: 14),
+          return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.chat_bubble_outline, size: 56, color: Colors.white54),
+            const SizedBox(height: 14),
             Text('Aucune consultation',
-                style: TextStyle(color: Color(0xFF8A9BB0), fontSize: 15,
-                    decoration: TextDecoration.none)),
+                style: GoogleFonts.poppins(color: Colors.white54, fontSize: 15)),
           ]));
         }
         return ListView.separated(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           itemCount: list.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 10),
+          separatorBuilder: (_, __) => const SizedBox(height: 16),
           itemBuilder: (_, i) => _ConsultCard(c: list[i], lawyerId: uid, auth: auth),
         );
       },
@@ -299,12 +323,8 @@ class _ConsultCardState extends State<_ConsultCard> {
   final _answerCtrl = TextEditingController();
   bool _loading = false;
 
-  static const _navyCard = Color(0xFF162233);
-  static const _navyLight = Color(0xFF1B2D42);
-  static const _navy = Color(0xFF0D1B2A);
   static const _gold = Color(0xFFC9A84C);
-  static const _textPrimary = Color(0xFFF0EDE8);
-  static const _textSecondary = Color(0xFF8A9BB0);
+  static const _goldLight = Color(0xFFE2C47A);
 
   @override
   void dispose() { _answerCtrl.dispose(); super.dispose(); }
@@ -324,11 +344,11 @@ class _ConsultCardState extends State<_ConsultCard> {
         setState(() => _showReply = false);
         _answerCtrl.clear();
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Réponse envoyée !'), backgroundColor: Color(0xFF2E7D32)));
+            content: Text('Réponse envoyée !'), backgroundColor: Color(0xFF4CAF50)));
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red));
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.redAccent));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -342,110 +362,121 @@ class _ConsultCardState extends State<_ConsultCard> {
 
     return Container(
       decoration: BoxDecoration(
-        color: _navyCard, borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0x14FFFFFF)),
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 10, offset: const Offset(0, 4)),
+        ]
       ),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(18),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           CircleAvatar(
-            radius: 18, backgroundColor: _gold.withOpacity(0.12),
+            radius: 20, backgroundColor: _gold.withOpacity(0.15),
             child: Text(name[0].toUpperCase(),
-                style: const TextStyle(color: _gold, fontWeight: FontWeight.w700)),
+                style: GoogleFonts.outfit(color: _gold, fontWeight: FontWeight.bold, fontSize: 18)),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(name, style: const TextStyle(
-                fontWeight: FontWeight.w600, fontSize: 14, color: _textPrimary)),
-            Text(c.type, style: const TextStyle(color: _gold, fontSize: 11)),
+            Text(name, style: GoogleFonts.outfit(
+                fontWeight: FontWeight.w600, fontSize: 15, color: Colors.white)),
+            Text(c.type, style: GoogleFonts.poppins(color: _goldLight, fontSize: 12)),
           ])),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: answered ? const Color(0x1A4CAF50) : const Color(0x1AFF9800),
-              borderRadius: BorderRadius.circular(6),
+              color: answered ? const Color(0xFF4CAF50).withOpacity(0.15) : const Color(0xFFFF9800).withOpacity(0.15),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: answered ? const Color(0xFF4CAF50).withOpacity(0.3) : const Color(0xFFFF9800).withOpacity(0.3)),
             ),
             child: Text(answered ? 'Répondu' : 'En attente',
-                style: TextStyle(
+                style: GoogleFonts.poppins(
                   color: answered ? const Color(0xFF4CAF50) : const Color(0xFFFF9800),
                   fontSize: 11, fontWeight: FontWeight.w600)),
           ),
         ]),
-        const SizedBox(height: 10),
+        const SizedBox(height: 16),
         Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(color: _navy, borderRadius: BorderRadius.circular(8)),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(color: Colors.black.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
           child: Text(c.question,
-              style: TextStyle(color: _textSecondary, fontSize: 13, height: 1.4)),
+              style: GoogleFonts.poppins(color: Colors.white.withOpacity(0.85), fontSize: 13, height: 1.5)),
         ),
         if (answered && c.answer != null) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0x1A4CAF50), borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0x334CAF50)),
+              color: const Color(0xFF4CAF50).withOpacity(0.1), borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF4CAF50).withOpacity(0.3)),
             ),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Votre réponse :',
-                  style: TextStyle(color: Color(0xFF4CAF50), fontSize: 11, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 4),
-              Text(c.answer!, style: const TextStyle(color: _textPrimary, fontSize: 13, height: 1.4)),
+              Text('Votre réponse :',
+                  style: GoogleFonts.poppins(color: const Color(0xFF4CAF50), fontSize: 12, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 6),
+              Text(c.answer!, style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, height: 1.5)),
             ]),
           ),
         ],
         if (!answered) ...[
-          const SizedBox(height: 10),
+          const SizedBox(height: 16),
           if (_showReply) ...[
             TextField(
               controller: _answerCtrl, maxLines: 4,
-              style: const TextStyle(color: _textPrimary, fontSize: 14),
+              style: GoogleFonts.poppins(color: Colors.white, fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'Rédigez votre réponse juridique...',
-                hintStyle: TextStyle(color: _textSecondary.withOpacity(0.5), fontSize: 13),
-                filled: true, fillColor: _navyLight,
-                contentPadding: const EdgeInsets.all(12),
+                hintStyle: GoogleFonts.poppins(color: Colors.white54, fontSize: 13),
+                filled: true, fillColor: Colors.black.withOpacity(0.2),
+                contentPadding: const EdgeInsets.all(14),
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                    borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                 focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: _gold)),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Row(children: [
               Expanded(child: OutlinedButton(
                 onPressed: () => setState(() => _showReply = false),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: _textSecondary,
-                  side: BorderSide(color: _textSecondary.withOpacity(0.3)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  foregroundColor: Colors.white70,
+                  side: BorderSide(color: Colors.white.withOpacity(0.3)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-                child: const Text('Annuler'),
+                child: Text('Annuler', style: GoogleFonts.poppins()),
               )),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(child: ElevatedButton(
                 onPressed: _loading ? null : _send,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _gold, foregroundColor: const Color(0xFF0D1B2A),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  backgroundColor: _gold, foregroundColor: Colors.black87,
+                  elevation: 4,
+                  shadowColor: _gold.withOpacity(0.4),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
                 child: _loading
                     ? const SizedBox(width: 18, height: 18,
                         child: CircularProgressIndicator(strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation(Color(0xFF0D1B2A))))
-                    : const Text('Envoyer', style: TextStyle(fontWeight: FontWeight.w700)),
+                            valueColor: AlwaysStoppedAnimation(Colors.black87)))
+                    : Text('Envoyer', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
               )),
             ]),
           ] else SizedBox(
-            width: double.infinity, height: 44,
+            width: double.infinity, height: 48,
             child: ElevatedButton.icon(
               onPressed: () => setState(() => _showReply = true),
-              icon: const Icon(Icons.reply_rounded, size: 16),
-              label: const Text('Répondre'),
+              icon: const Icon(Icons.reply_rounded, size: 18),
+              label: Text('Répondre', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: _gold, foregroundColor: const Color(0xFF0D1B2A),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                backgroundColor: _gold, foregroundColor: Colors.black87,
+                elevation: 4,
+                shadowColor: _gold.withOpacity(0.4),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
           ),
