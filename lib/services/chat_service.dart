@@ -199,6 +199,9 @@ class ChatService {
           senderName: senderName.isNotEmpty ? senderName : 'مستخدم',
           text: (d['text'] ?? '').toString(),
           createdAt: (d['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+          attachedFileName: d['attachedFileName']?.toString(),
+          attachedFileType: d['attachedFileType']?.toString(),
+          attachedFileBase64: d['attachedFileBase64']?.toString(),
         ));
       }
 
@@ -210,9 +213,12 @@ class ChatService {
     required String conversationId,
     required String senderId,
     required String text,
+    String? attachedFileName,
+    String? attachedFileType,
+    String? attachedFileBase64,
   }) async {
     final trimmed = text.trim();
-    if (trimmed.isEmpty) return;
+    if (trimmed.isEmpty && attachedFileBase64 == null) return;
 
     // الحصول على اسم المرسل
     String senderName = 'مستخدم';
@@ -234,15 +240,23 @@ class ChatService {
       print('Error getting sender name: $e');
     }
 
-    await _conversations.doc(conversationId).collection('messages').add({
+    final messageData = {
       'senderId': senderId,
       'senderName': senderName,
       'text': trimmed,
       'createdAt': FieldValue.serverTimestamp(),
-    });
+    };
+
+    if (attachedFileName != null) messageData['attachedFileName'] = attachedFileName;
+    if (attachedFileType != null) messageData['attachedFileType'] = attachedFileType;
+    if (attachedFileBase64 != null) messageData['attachedFileBase64'] = attachedFileBase64;
+
+    await _conversations.doc(conversationId).collection('messages').add(messageData);
+
+    final lastMessageText = attachedFileName != null ? '📎 Pièce jointe: $attachedFileName' : trimmed;
 
     await _conversations.doc(conversationId).update({
-      'lastMessageText': trimmed,
+      'lastMessageText': lastMessageText,
       'lastMessageAt': FieldValue.serverTimestamp(),
     });
   }

@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/auth_service.dart';
 import '../models/consultation_model.dart';
+import 'dart:ui';
 
 class UserConsultationScreen extends StatefulWidget {
   final String uid;
@@ -17,6 +18,21 @@ class _UserConsultationScreenState extends State<UserConsultationScreen>
   late TabController _tabs;
   final _auth = AuthService();
 
+  final List<String> _allSpecialities = [
+    'Droit familial',
+    'Droit pénal',
+    'Droit commercial',
+    'Droit civil',
+    'Droit immobilier',
+    'Droit administratif',
+    'Droit du travail',
+    'Droit des sociétés',
+    'Droit fiscal',
+    'Droit constitutionnel'
+  ];
+
+  String? _selectedSpeciality;
+
   @override
   void initState() {
     super.initState();
@@ -29,43 +45,198 @@ class _UserConsultationScreenState extends State<UserConsultationScreen>
     super.dispose();
   }
 
+  Widget _filterChip(String label, bool selected, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+        margin: const EdgeInsets.only(right: 8),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFF0052D4) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? const Color(0xFF0052D4) : Colors.grey.shade200,
+            width: 1.5,
+          ),
+          boxShadow: selected
+              ? [BoxShadow(color: const Color(0xFF0052D4).withOpacity(0.25), blurRadius: 10, offset: const Offset(0, 4))]
+              : [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 5, offset: const Offset(0, 2))],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : Colors.grey.shade700,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.3,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Consultations'),
-        backgroundColor: const Color(0xFF1565C0),
-        foregroundColor: Colors.white,
-        automaticallyImplyLeading: false,
-        bottom: TabBar(
-          controller: _tabs,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white60,
-          indicatorColor: Colors.amber,
-          tabs: const [
-            Tab(icon: Icon(Icons.add_comment_outlined), text: 'Nouvelle'),
-            Tab(icon: Icon(Icons.history_rounded), text: 'Historique'),
-            Tab(icon: Icon(Icons.people_outlined), text: 'Partages'),
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabs,
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: Column(
         children: [
-          _NewConsultationForm(uid: widget.uid, auth: _auth),
-          _ConsultationHistory(uid: widget.uid, auth: _auth),
-          _SharedConsultations(uid: widget.uid, auth: _auth),
+          Container(
+            padding: EdgeInsets.only(
+                top: MediaQuery.of(context).padding.top + 20,
+                left: 20,
+                right: 20,
+                bottom: 20),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF0052D4), Color(0xFF4364F7), Color(0xFF6FB1FC)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0xFF0052D4),
+                  blurRadius: 20,
+                  offset: Offset(0, 8),
+                  spreadRadius: -10,
+                )
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(Icons.gavel_rounded, color: Colors.white, size: 28),
+                    ),
+                    const SizedBox(width: 16),
+                    const Text(
+                      'Consultations',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Posez vos questions juridiques ou parcourez les partages de la communauté.',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: TabBar(
+                    controller: _tabs,
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    indicatorPadding: const EdgeInsets.all(4),
+                    indicator: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        )
+                      ],
+                    ),
+                    labelColor: const Color(0xFF0052D4),
+                    unselectedLabelColor: Colors.white.withOpacity(0.8),
+                    labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                    unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                    tabs: const [
+                      Tab(text: 'Nouvelle'),
+                      Tab(text: 'Historique'),
+                      Tab(text: 'Partages'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          Expanded(
+            child: TabBarView(
+              controller: _tabs,
+              children: [
+                _NewConsultationForm(uid: widget.uid, auth: _auth, allSpecialities: _allSpecialities),
+                _ConsultationHistory(uid: widget.uid, auth: _auth),
+                Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 0, 12),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        child: Row(
+                          children: [
+                            _filterChip('Tous', _selectedSpeciality == null, () {
+                              setState(() => _selectedSpeciality = null);
+                            }),
+                            ..._allSpecialities.map((s) {
+                              final isSelected = _selectedSpeciality == s;
+                              return _filterChip(s, isSelected, () {
+                                setState(() => _selectedSpeciality = isSelected ? null : s);
+                              });
+                            }),
+                            const SizedBox(width: 20),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: _SharedConsultations(
+                        uid: widget.uid,
+                        auth: _auth,
+                        selectedSpeciality: _selectedSpeciality,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-// ── FORMULAIRE NOUVELLE CONSULTATION ─────────────────────────────
 class _NewConsultationForm extends StatefulWidget {
   final String uid;
   final AuthService auth;
-  const _NewConsultationForm({required this.uid, required this.auth});
+  final List<String> allSpecialities;
+
+  const _NewConsultationForm({
+    required this.uid,
+    required this.auth,
+    required this.allSpecialities,
+  });
   @override
   State<_NewConsultationForm> createState() => _NewConsultationFormState();
 }
@@ -74,15 +245,6 @@ class _NewConsultationFormState extends State<_NewConsultationForm> {
   final _questionCtrl = TextEditingController();
   String? _type;
   bool _loading = false;
-
-  static const _types = [
-    ('Droit familial', Icons.family_restroom_rounded, Color(0xFFE91E63)),
-    ('Droit pénal', Icons.gavel_rounded, Color(0xFF9C27B0)),
-    ('Droit commercial', Icons.business_center_rounded, Color(0xFF2196F3)),
-    ('Droit du travail', Icons.work_rounded, Color(0xFF009688)),
-    ('Droit immobilier', Icons.home_work_rounded, Color(0xFFFF9800)),
-    ('Droit civil', Icons.balance_rounded, Color(0xFF607D8B)),
-  ];
 
   @override
   void dispose() {
@@ -111,13 +273,13 @@ class _NewConsultationFormState extends State<_NewConsultationForm> {
       _questionCtrl.clear();
       setState(() => _type = null);
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content:
-              Text('Consultation envoyée ! Un avocat vous répondra bientôt.'),
+          content: Text('Consultation envoyée ! Un avocat vous répondra bientôt.'),
           backgroundColor: Color(0xFF2E7D32)));
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red));
+      }
     }
     if (mounted) setState(() => _loading = false);
   }
@@ -125,131 +287,130 @@ class _NewConsultationFormState extends State<_NewConsultationForm> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF1565C0), Color(0xFF1976D2)],
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Spécialité juridique',
+              style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                  color: Color(0xFF1E293B))),
+          const SizedBox(height: 16),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 2.8,
             ),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Row(children: [
-            const Icon(Icons.chat_bubble_outline_rounded,
-                color: Colors.white, size: 28),
-            const SizedBox(width: 12),
-            Expanded(
-                child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Consultation juridique',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15)),
-                Text('Posez votre question à nos avocats',
-                    style: TextStyle(
-                        color: Colors.white.withOpacity(0.8), fontSize: 12)),
-              ],
-            )),
-          ]),
-        ),
-        const SizedBox(height: 22),
-        const Text('Type de consultation *',
-            style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-                color: Color(0xFF263238))),
-        const SizedBox(height: 12),
-        GridView.count(
-          crossAxisCount: 3,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
-          childAspectRatio: 1.2,
-          children: _types.map((t) {
-            final sel = _type == t.$1;
-            return GestureDetector(
-              onTap: () => setState(() => _type = t.$1),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                decoration: BoxDecoration(
-                  color: sel ? t.$3 : t.$3.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                      color: sel ? t.$3 : t.$3.withOpacity(0.3),
-                      width: sel ? 2 : 1),
-                ),
-                child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+            itemCount: widget.allSpecialities.length,
+            itemBuilder: (ctx, i) {
+              final t = widget.allSpecialities[i];
+              final sel = _type == t;
+              return GestureDetector(
+                onTap: () => setState(() => _type = t),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOutCubic,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: sel ? const Color(0xFF0052D4) : Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                        color: sel ? const Color(0xFF0052D4) : Colors.grey.shade200,
+                        width: 1.5),
+                    boxShadow: sel
+                        ? [BoxShadow(color: const Color(0xFF0052D4).withOpacity(0.25), blurRadius: 10, offset: const Offset(0, 4))]
+                        : [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2))],
+                  ),
+                  child: Row(
                     children: [
-                      Icon(t.$2, color: sel ? Colors.white : t.$3, size: 24),
-                      const SizedBox(height: 5),
-                      Text(t.$1,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              color: sel ? Colors.white : t.$3,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600)),
-                    ]),
+                      Icon(Icons.balance_rounded,
+                          color: sel ? Colors.white : const Color(0xFF0052D4),
+                          size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(t,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: sel ? Colors.white : const Color(0xFF475569),
+                                fontSize: 12,
+                                fontWeight: sel ? FontWeight.w700 : FontWeight.w500)),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 32),
+          const Text('Votre question détaillée',
+              style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                  color: Color(0xFF1E293B))),
+          const SizedBox(height: 16),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.grey.shade200, width: 1.5),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 4))],
+            ),
+            child: TextField(
+              controller: _questionCtrl,
+              maxLines: 6,
+              style: const TextStyle(fontSize: 14, color: Color(0xFF334155), height: 1.5),
+              decoration: InputDecoration(
+                hintText: 'Décrivez votre situation juridique de manière claire et précise...',
+                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.all(20),
               ),
-            );
-          }).toList(),
-        ),
-        const SizedBox(height: 20),
-        const Text('Votre question *',
-            style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-                color: Color(0xFF263238))),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFFF8F9FA),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.grey.shade200),
-          ),
-          child: TextField(
-            controller: _questionCtrl,
-            maxLines: 6,
-            decoration: InputDecoration(
-              hintText: 'Décrivez votre situation juridique en détail...',
-              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.all(16),
             ),
           ),
-        ),
-        const SizedBox(height: 24),
-        SizedBox(
-          width: double.infinity,
-          height: 54,
-          child: ElevatedButton.icon(
-            onPressed: _loading ? null : _submit,
-            icon: _loading
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.send_rounded, size: 18),
-            label: Text(_loading ? 'Envoi...' : 'Envoyer la consultation'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1565C0),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+          const SizedBox(height: 32),
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: ElevatedButton(
+              onPressed: _loading ? null : _submit,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0052D4),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+              ),
+              child: _loading
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2.5, color: Colors.white))
+                  : const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('Soumettre la consultation',
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                        SizedBox(width: 10),
+                        Icon(Icons.send_rounded, size: 20),
+                      ],
+                    ),
             ),
           ),
-        ),
-      ]),
+          const SizedBox(height: 40),
+        ],
+      ),
     );
   }
 }
 
-// ── HISTORIQUE CONSULTATIONS ──────────────────────────────────────
 class _ConsultationHistory extends StatelessWidget {
   final String uid;
   final AuthService auth;
@@ -261,14 +422,14 @@ class _ConsultationHistory extends StatelessWidget {
       stream: auth.getUserConsultations(uid),
       builder: (ctx, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator(color: Color(0xFF0052D4)));
         }
         if (snap.hasError) {
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Text(
-                'Erreur lors du chargement de l’historique:\n${snap.error}',
+                'Erreur:\n${snap.error}',
                 textAlign: TextAlign.center,
               ),
             ),
@@ -276,65 +437,78 @@ class _ConsultationHistory extends StatelessWidget {
         }
         final list = snap.data ?? [];
         if (list.isEmpty) {
-          return const Center(
-              child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.chat_bubble_outline_rounded,
-                  size: 60, color: Colors.grey),
-              SizedBox(height: 14),
-              Text('Aucune consultation pour l\'instant',
-                  style: TextStyle(color: Colors.grey, fontSize: 15)),
-            ],
-          ));
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0052D4).withOpacity(0.05),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.history_rounded, size: 64, color: Color(0xFF0052D4)),
+                ),
+                const SizedBox(height: 24),
+                const Text('Aucun historique',
+                    style: TextStyle(color: Color(0xFF1E293B), fontSize: 18, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 8),
+                const Text('Vos consultations apparaîtront ici',
+                    style: TextStyle(color: Color(0xFF64748B), fontSize: 14)),
+              ],
+            ),
+          );
         }
         return ListView.separated(
-          padding: const EdgeInsets.all(16),
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.all(20),
           itemCount: list.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 10),
+          separatorBuilder: (_, __) => const SizedBox(height: 16),
           itemBuilder: (_, i) => Dismissible(
             key: Key(list[i].id),
             direction: DismissDirection.endToStart,
             background: Container(
               alignment: Alignment.centerRight,
-              padding: const EdgeInsets.only(right: 24),
-              margin: const EdgeInsets.only(bottom: 4),
+              padding: const EdgeInsets.only(right: 28),
               decoration: BoxDecoration(
-                color: Colors.red.shade600,
-                borderRadius: BorderRadius.circular(14),
+                color: const Color(0xFFEF4444),
+                borderRadius: BorderRadius.circular(20),
               ),
               child: const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.delete_outline_rounded, color: Colors.white, size: 24),
+                  Icon(Icons.delete_sweep_rounded, color: Colors.white, size: 28),
                   SizedBox(height: 4),
-                  Text('Supprimer', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+                  Text('Supprimer', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
                 ],
               ),
             ),
             confirmDismiss: (_) async {
               HapticFeedback.mediumImpact();
               return await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Supprimer la consultation'),
-                  content: const Text('Voulez-vous supprimer cette consultation ?\nCette action est irréversible.'),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
-                    ElevatedButton(
-                      onPressed: () => Navigator.pop(ctx, true),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                      child: const Text('Supprimer', style: TextStyle(color: Colors.white)),
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      title: const Text('Supprimer ?', style: TextStyle(fontWeight: FontWeight.bold)),
+                      content: const Text('Cette action est irréversible.'),
+                      actions: [
+                        TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('Annuler', style: TextStyle(color: Colors.grey))),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFEF4444),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                          child: const Text('Supprimer', style: TextStyle(color: Colors.white)),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ) ?? false;
+                  ) ??
+                  false;
             },
             onDismissed: (_) {
               FirebaseFirestore.instance.collection('consultations').doc(list[i].id).delete();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Consultation supprimée')),
-              );
             },
             child: _ConsultCard(c: list[i]),
           ),
@@ -351,114 +525,153 @@ class _ConsultCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final answered = c.status == 'answered';
-    final lawyerName = (c.lawyerName != null && c.lawyerName!.trim().isNotEmpty)
-        ? c.lawyerName!
-        : 'Avocat';
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
+    final lawyerName = (c.lawyerName != null && c.lawyerName!.trim().isNotEmpty) ? c.lawyerName! : 'Avocat';
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade100, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          )
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: const Color(0xFF1565C0).withOpacity(0.08),
-                borderRadius: BorderRadius.circular(6),
+                color: answered ? const Color(0xFFF0FDF4) : const Color(0xFFFFFBEB),
+                border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
               ),
-              child: Text(c.type,
-                  style: const TextStyle(
-                      color: Color(0xFF1565C0),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600)),
-            ),
-            const Spacer(),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: answered
-                    ? Colors.green.withOpacity(0.1)
-                    : Colors.orange.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(
-                  answered ? Icons.check_circle_outline : Icons.hourglass_empty,
-                  size: 11,
-                  color: answered ? Colors.green : Colors.orange,
-                ),
-                const SizedBox(width: 4),
-                Text(answered ? 'Répondu' : 'En attente',
-                    style: TextStyle(
-                        color: answered ? Colors.green : Colors.orange,
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Text(
+                      c.type,
+                      style: const TextStyle(
+                        color: Color(0xFF334155),
                         fontSize: 11,
-                        fontWeight: FontWeight.w600)),
-              ]),
-            ),
-          ]),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Question :',
-                  style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600)),
-              const SizedBox(height: 4),
-              Text(c.question,
-                  style: const TextStyle(
-                      color: Color(0xFF263238), fontSize: 13, height: 1.4)),
-            ]),
-          ),
-          if (answered && c.answer != null) ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.06),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.green.withOpacity(0.2)),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  Icon(
+                    answered ? Icons.check_circle_rounded : Icons.access_time_filled_rounded,
+                    size: 16,
+                    color: answered ? const Color(0xFF16A34A) : const Color(0xFFD97706),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    answered ? 'Répondu' : 'En attente',
+                    style: TextStyle(
+                      color: answered ? const Color(0xFF16A34A) : const Color(0xFFD97706),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
+            ),
+            
+            // Question
+            Padding(
+              padding: const EdgeInsets.all(20),
               child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(children: [
-                      const Icon(Icons.gavel_rounded,
-                          size: 13, color: Colors.green),
-                      const SizedBox(width: 5),
-                      Text(lawyerName,
-                          style: const TextStyle(
-                              color: Colors.green,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600)),
-                    ]),
-                    const SizedBox(height: 5),
-                    Text(c.answer!,
-                        style: const TextStyle(
-                            color: Color(0xFF263238),
-                            fontSize: 13,
-                            height: 1.4)),
-                  ]),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    c.question,
+                    style: const TextStyle(
+                      color: Color(0xFF1E293B),
+                      fontSize: 14,
+                      height: 1.6,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  
+                  if (answered && c.answer != null) ...[
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF0052D4),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.gavel_rounded, size: 12, color: Colors.white),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                lawyerName,
+                                style: const TextStyle(
+                                  color: Color(0xFF0052D4),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            c.answer!,
+                            style: const TextStyle(
+                              color: Color(0xFF334155),
+                              fontSize: 14,
+                              height: 1.6,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ],
-        ]),
+        ),
       ),
     );
   }
 }
 
-// ── الاستشارات المشتركة (من المستخدمين الآخرين) ──────────────
 class _SharedConsultations extends StatefulWidget {
   final String uid;
   final AuthService auth;
-  const _SharedConsultations({required this.uid, required this.auth});
+  final String? selectedSpeciality;
+
+  const _SharedConsultations({
+    required this.uid,
+    required this.auth,
+    required this.selectedSpeciality,
+  });
+
   @override
   State<_SharedConsultations> createState() => _SharedConsultationsState();
 }
@@ -478,45 +691,55 @@ class _SharedConsultationsState extends State<_SharedConsultations> {
       future: _userRoleFuture,
       builder: (ctx, roleSnap) {
         if (roleSnap.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: CircularProgressIndicator(color: Color(0xFF0052D4)));
         }
         final userRole = roleSnap.data ?? 'user';
-        return StreamBuilder<List<ConsultationModel>>(
-          stream: widget.auth.getOtherUsersConsultations(widget.uid),
+
+        Query query = FirebaseFirestore.instance.collection('consultations');
+        if (widget.selectedSpeciality != null) {
+          query = query.where('type', isEqualTo: widget.selectedSpeciality);
+        }
+
+        return StreamBuilder<QuerySnapshot>(
+          stream: query.snapshots(),
           builder: (ctx, snap) {
             if (snap.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return const Center(child: CircularProgressIndicator(color: Color(0xFF0052D4)));
             }
             if (snap.hasError) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Text(
-                    'Erreur:\n${snap.error}',
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              );
+              return Center(child: Text('Erreur:\n${snap.error}'));
             }
-            final list = snap.data ?? [];
+
+            final list = snap.data?.docs.map((e) => ConsultationModel.fromFirestore(e)).toList() ?? [];
+
             if (list.isEmpty) {
-              return const Center(
+              return Center(
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.chat_bubble_outline_rounded,
-                        size: 60, color: Colors.grey),
-                    SizedBox(height: 14),
-                    Text('Aucune consultation partagée pour l\'instant',
-                        style: TextStyle(color: Colors.grey, fontSize: 15)),
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0052D4).withOpacity(0.05),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.people_alt_rounded, size: 64, color: Color(0xFF0052D4)),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text('Aucun partage',
+                        style: TextStyle(color: Color(0xFF1E293B), fontSize: 18, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 8),
+                    const Text('Sélectionnez une autre spécialité',
+                        style: TextStyle(color: Color(0xFF64748B), fontSize: 14)),
                   ],
                 ),
               );
             }
             return ListView.separated(
-              padding: const EdgeInsets.all(16),
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.all(20),
               itemCount: list.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              separatorBuilder: (_, __) => const SizedBox(height: 20),
               itemBuilder: (_, i) => _SharedConsultCard(
                 consultation: list[i],
                 userRole: userRole,
@@ -569,7 +792,6 @@ class _SharedConsultCardState extends State<_SharedConsultCard> {
 
     setState(() => _isAnswering = true);
     try {
-      // ✅ جلب اسم المحامي من collection lawyers لا users
       final lawyerProfile = await widget.auth.getLawyerProfile(widget.currentUserId);
 
       await widget.auth.answerConsultation(
@@ -588,10 +810,7 @@ class _SharedConsultCardState extends State<_SharedConsultCard> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -602,279 +821,301 @@ class _SharedConsultCardState extends State<_SharedConsultCard> {
   Widget build(BuildContext context) {
     final isLawyer = widget.userRole == 'lawyer';
     final answered = widget.consultation.status == 'answered';
+    final lawyerName = (widget.consultation.lawyerName != null && widget.consultation.lawyerName!.trim().isNotEmpty)
+        ? widget.consultation.lawyerName!
+        : 'Avocat';
 
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade100, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
+          )
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── رأس البطاقة ──
-            Row(
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1565C0).withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    widget.consultation.type,
-                    style: const TextStyle(
-                      color: Color(0xFF1565C0),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: answered
-                        ? Colors.green.withOpacity(0.1)
-                        : Colors.orange.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        answered
-                            ? Icons.check_circle_outline
-                            : Icons.hourglass_empty,
-                        size: 11,
-                        color: answered ? Colors.green : Colors.orange,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        answered ? 'Répondu' : 'En attente',
-                        style: TextStyle(
-                          color: answered ? Colors.green : Colors.orange,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            // ── اسم المستخدم ──
-            Row(
-              children: [
-                const Icon(Icons.person_outline, size: 13, color: Colors.grey),
-                const SizedBox(width: 4),
-                Text(
-                  widget.consultation.userFullName,
-                  style: const TextStyle(
-                    color: Colors.grey,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            // ── السؤال ──
+            // Header
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(8),
+                color: answered ? const Color(0xFFF0FDF4) : const Color(0xFFFFFBEB),
+                border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  const Text(
-                    'Question:',
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Text(
+                      widget.consultation.type,
+                      style: const TextStyle(
+                        color: Color(0xFF334155),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const Spacer(),
+                  Icon(
+                    answered ? Icons.check_circle_rounded : Icons.access_time_filled_rounded,
+                    size: 16,
+                    color: answered ? const Color(0xFF16A34A) : const Color(0xFFD97706),
+                  ),
+                  const SizedBox(width: 6),
                   Text(
-                    widget.consultation.question,
-                    style: const TextStyle(
-                      color: Color(0xFF263238),
-                      fontSize: 13,
-                      height: 1.4,
+                    answered ? 'Répondu' : 'En attente',
+                    style: TextStyle(
+                      color: answered ? const Color(0xFF16A34A) : const Color(0xFFD97706),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
               ),
             ),
-            // ── الرد إن وجد ──
-            if (answered && widget.consultation.answer != null) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.06),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green.withOpacity(0.2)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.gavel_rounded,
-                            size: 13, color: Colors.green),
-                        const SizedBox(width: 5),
-                        Text(
-                          widget.consultation.lawyerName ?? 'Avocat',
-                          style: const TextStyle(
-                            color: Colors.green,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      widget.consultation.answer!,
-                      style: const TextStyle(
-                        color: Color(0xFF263238),
-                        fontSize: 13,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            // ── زر الرد (فقط للمحامين والاستشارة بدون رد) ──
-            if (!answered && isLawyer) ...[
-              const SizedBox(height: 12),
-              if (!_isAnswering)
-                ElevatedButton.icon(
-                  onPressed: () {
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(20),
-                          topRight: Radius.circular(20),
-                        ),
-                      ),
-                      builder: (_) => Padding(
-                        padding: EdgeInsets.only(
-                          bottom: MediaQuery.of(context).viewInsets.bottom,
-                          top: 20,
-                          left: 16,
-                          right: 16,
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Votre réponse',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF8F9FA),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.grey.shade200),
-                              ),
-                              child: TextField(
-                                controller: _answerCtrl,
-                                maxLines: 5,
-                                decoration: InputDecoration(
-                                  hintText:
-                                      'Écrivez votre réponse juridique...',
-                                  hintStyle: TextStyle(
-                                    color: Colors.grey.shade400,
-                                    fontSize: 13,
-                                  ),
-                                  border: InputBorder.none,
-                                  contentPadding: const EdgeInsets.all(12),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: TextButton(
-                                    onPressed: () {
-                                      _answerCtrl.clear();
-                                      Navigator.pop(context);
-                                    },
-                                    child: const Text('Annuler'),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: ElevatedButton(
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                      _submitAnswer();
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF1565C0),
-                                      foregroundColor: Colors.white,
-                                    ),
-                                    child: const Text('Envoyer'),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.reply_rounded, size: 16),
-                  label: const Text('Répondre'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1565C0),
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-              // ── رسالة للمستخدمين العاديين ──
-              if (!isLawyer)
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.withOpacity(0.2)),
-                  ),
-                  child: Row(
+            
+            // Content
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Icon(Icons.info_outline,
-                          size: 14, color: Colors.blue.shade700),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Seuls les avocats peuvent répondre aux consultations',
-                          style: TextStyle(
-                            color: Colors.blue.shade700,
-                            fontSize: 12,
-                          ),
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.person_rounded, size: 14, color: Color(0xFF64748B)),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        widget.consultation.userFullName,
+                        style: const TextStyle(
+                          color: Color(0xFF64748B),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ],
                   ),
-                ),
-            ],
+                  const SizedBox(height: 16),
+                  Text(
+                    widget.consultation.question,
+                    style: const TextStyle(
+                      color: Color(0xFF1E293B),
+                      fontSize: 14,
+                      height: 1.6,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  
+                  if (answered && widget.consultation.answer != null) ...[
+                    const SizedBox(height: 24),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF0052D4),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.gavel_rounded, size: 12, color: Colors.white),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                lawyerName,
+                                style: const TextStyle(
+                                  color: Color(0xFF0052D4),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            widget.consultation.answer!,
+                            style: const TextStyle(
+                              color: Color(0xFF334155),
+                              fontSize: 14,
+                              height: 1.6,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  
+                  if (!answered && isLawyer) ...[
+                    const SizedBox(height: 24),
+                    if (!_isAnswering)
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (_) => Container(
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                                ),
+                                padding: EdgeInsets.only(
+                                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                                  top: 30,
+                                  left: 24,
+                                  right: 24,
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Row(
+                                      children: [
+                                        Icon(Icons.gavel_rounded, color: Color(0xFF0052D4)),
+                                        SizedBox(width: 12),
+                                        Text(
+                                          'Votre réponse juridique',
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w800,
+                                            color: Color(0xFF1E293B),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 20),
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF8FAFC),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(color: Colors.grey.shade200),
+                                      ),
+                                      child: TextField(
+                                        controller: _answerCtrl,
+                                        maxLines: 6,
+                                        style: const TextStyle(fontSize: 14, height: 1.5),
+                                        decoration: InputDecoration(
+                                          hintText: 'Rédigez votre conseil...',
+                                          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                                          border: InputBorder.none,
+                                          contentPadding: const EdgeInsets.all(20),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 24),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: TextButton(
+                                            onPressed: () {
+                                              _answerCtrl.clear();
+                                              Navigator.pop(context);
+                                            },
+                                            style: TextButton.styleFrom(
+                                              padding: const EdgeInsets.symmetric(vertical: 16),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                            ),
+                                            child: const Text('Annuler', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold)),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          flex: 2,
+                                          child: ElevatedButton(
+                                            onPressed: () {
+                                              Navigator.pop(context);
+                                              _submitAnswer();
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: const Color(0xFF0052D4),
+                                              foregroundColor: Colors.white,
+                                              padding: const EdgeInsets.symmetric(vertical: 16),
+                                              elevation: 0,
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                            ),
+                                            child: const Text('Envoyer la réponse', style: TextStyle(fontWeight: FontWeight.bold)),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 30),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.reply_rounded, size: 18),
+                          label: const Text('Apporter une réponse', style: TextStyle(fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0052D4),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                        ),
+                      ),
+                  ],
+                  
+                  if (!answered && !isLawyer) ...[
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0052D4).withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFF0052D4).withOpacity(0.1)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.info_outline_rounded, size: 16, color: Color(0xFF0052D4)),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Seuls les avocats vérifiés peuvent répondre.',
+                              style: TextStyle(
+                                color: Color(0xFF0052D4),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ],
         ),
       ),

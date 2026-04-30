@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart'; // تم إضافة المكتبة لفتح الروابط
 import '../models/lawyer_model.dart';
 import '../services/favorites_service.dart';
 import '../widgets/profile_avatar.dart';
@@ -37,7 +38,10 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
 
   Future<void> _checkIfRated() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) { setState(() => _checkingRating = false); return; }
+    if (uid == null) {
+      setState(() => _checkingRating = false);
+      return;
+    }
     final doc = await FirebaseFirestore.instance
         .collection('ratings')
         .doc('${widget.lawyer.uid}_$uid')
@@ -53,7 +57,11 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
 
   Future<void> _checkFavorite() async {
     final fav = await _favService.isFavorite(widget.lawyer.uid);
-    if (mounted) setState(() { _isFavorite = fav; _loadingFav = false; });
+    if (mounted)
+      setState(() {
+        _isFavorite = fav;
+        _loadingFav = false;
+      });
   }
 
   Future<void> _toggleFavorite() async {
@@ -78,9 +86,8 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
     final ratingDocRef = FirebaseFirestore.instance
         .collection('ratings')
         .doc('${widget.lawyer.uid}_$uid');
-    final lawyerRef = FirebaseFirestore.instance
-        .collection('lawyers')
-        .doc(widget.lawyer.uid);
+    final lawyerRef =
+        FirebaseFirestore.instance.collection('lawyers').doc(widget.lawyer.uid);
 
     await FirebaseFirestore.instance.runTransaction((tx) async {
       final lawyerSnap = await tx.get(lawyerRef);
@@ -93,7 +100,8 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
 
       final existingRatingSnap = await tx.get(ratingDocRef);
       if (existingRatingSnap.exists) {
-        final oldUserRating = (existingRatingSnap.data()?['rating'] ?? 0).toDouble();
+        final oldUserRating =
+            (existingRatingSnap.data()?['rating'] ?? 0).toDouble();
         final totalPoints = oldRating * oldCount - oldUserRating + rating;
         newCount = oldCount;
         newRating = oldCount > 0 ? totalPoints / oldCount : rating;
@@ -105,12 +113,15 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
 
       newRating = double.parse(newRating.toStringAsFixed(1));
       final newScore = _calcScore(
-        newRating, newCount, d['experience'] ?? 0,
+        newRating,
+        newCount,
+        d['experience'] ?? 0,
         activityPoints: d['activityPoints'] ?? 0,
         responseRate: (d['responseRate'] ?? 0.0).toDouble(),
       );
 
-      tx.set(ratingDocRef, {'rating': rating, 'userId': uid, 'lawyerId': widget.lawyer.uid});
+      tx.set(ratingDocRef,
+          {'rating': rating, 'userId': uid, 'lawyerId': widget.lawyer.uid});
       tx.update(lawyerRef, {
         'rating': newRating,
         'reviewCount': newCount,
@@ -125,21 +136,22 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
         _submittingRating = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Merci pour votre évaluation (${rating.toStringAsFixed(1)}★)'),
+        content:
+            Text('Merci pour votre évaluation (${rating.toStringAsFixed(1)}★)'),
         backgroundColor: Colors.green,
       ));
     }
   }
 
-  // ✅ حساب كامل يشمل كل المعايير (100 نقطة)
   double _calcScore(double rating, int reviewCount, int experience,
       {int activityPoints = 0, double responseRate = 0.0}) {
-    double ratingScore   = (rating / 5.0) * 35;          // 35 نقطة
-    double expScore      = (experience.clamp(0, 20) / 20.0) * 25;  // 25 نقطة
-    double reviewScore   = (reviewCount.clamp(0, 50) / 50.0) * 10; // 10 نقطة
-    double activityScore = (activityPoints.clamp(0, 100) / 100.0) * 20; // 20 نقطة
-    double responseScore = (responseRate.clamp(0.0, 1.0)) * 10;    // 10 نقطة
-    final total = ratingScore + expScore + reviewScore + activityScore + responseScore;
+    double ratingScore = (rating / 5.0) * 35;
+    double expScore = (experience.clamp(0, 20) / 20.0) * 25;
+    double reviewScore = (reviewCount.clamp(0, 50) / 50.0) * 10;
+    double activityScore = (activityPoints.clamp(0, 100) / 100.0) * 20;
+    double responseScore = (responseRate.clamp(0.0, 1.0)) * 10;
+    final total =
+        ratingScore + expScore + reviewScore + activityScore + responseScore;
     return double.parse(total.toStringAsFixed(1));
   }
 
@@ -147,7 +159,6 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
     if (currentUid == null) return;
 
-    // ✅ نتحقق إذا كان هناك شات موجود بين المستخدم والمحامي (بأي requestId)
     final existing = await FirebaseFirestore.instance
         .collection('conversations')
         .where('userId', isEqualTo: currentUid)
@@ -157,21 +168,22 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
 
     String convId;
     if (existing.docs.isNotEmpty) {
-      // شات موجود → نفتحه مباشرة
       convId = existing.docs.first.id;
     } else {
-      // لا يوجد شات → ننشئ واحداً جديداً مع حفظ أسماء الطرفين
       String userName = '';
       try {
         final userDoc = await FirebaseFirestore.instance
-            .collection('users').doc(currentUid).get();
+            .collection('users')
+            .doc(currentUid)
+            .get();
         if (userDoc.exists) {
           final data = userDoc.data() ?? {};
           userName = (data['fullName'] ?? data['name'] ?? '').toString();
         }
       } catch (_) {}
 
-      final doc = await FirebaseFirestore.instance.collection('conversations').add({
+      final doc =
+          await FirebaseFirestore.instance.collection('conversations').add({
         'requestId': 'direct',
         'userId': currentUid,
         'lawyerId': widget.lawyer.uid,
@@ -185,9 +197,27 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
     }
 
     if (mounted) {
-      Navigator.push(context, MaterialPageRoute(
-        builder: (_) => ChatThreadScreen(conversationId: convId),
-      ));
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ChatThreadScreen(conversationId: convId),
+          ));
+    }
+  }
+
+  // ✅ دالة لفتح رابط الـ GPS
+  Future<void> _openMap(String? locationUrl) async {
+    if (locationUrl == null || locationUrl.isEmpty) return;
+    final Uri url = Uri.parse(locationUrl);
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('تعذر فتح الموقع، يرجى التأكد من الرابط')),
+        );
+      }
     }
   }
 
@@ -199,7 +229,6 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
       backgroundColor: const Color(0xFFF8F9FA),
       body: CustomScrollView(
         slivers: [
-          // ── App Bar avec photo ──────────────────────────────
           SliverAppBar(
             expandedHeight: 260,
             pinned: true,
@@ -249,7 +278,8 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
                             ),
                             if (lawyer.isVerified) ...[
                               const SizedBox(width: 8),
-                              const Icon(Icons.verified_rounded, color: Colors.amber, size: 22),
+                              const Icon(Icons.verified_rounded,
+                                  color: Colors.amber, size: 22),
                             ]
                           ],
                         ),
@@ -268,22 +298,20 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
               ),
             ),
           ),
-
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
-                  // ── Stats Row ──────────────────────────────
+                  // Stats Row
                   Row(
                     children: [
                       _statBox('${lawyer.rating.toStringAsFixed(1)}★',
                           '${lawyer.reviewCount} avis', Colors.amber),
                       const SizedBox(width: 12),
-                      _statBox('${lawyer.experience ?? 0} ans',
-                          'Expérience', _primary),
+                      _statBox('${lawyer.experience ?? 0} ans', 'Expérience',
+                          _primary),
                       const SizedBox(width: 12),
                       _statBox(
                         lawyer.wilaya ?? '-',
@@ -295,13 +323,14 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
 
                   const SizedBox(height: 24),
 
-                  // ── Boutons d'action ───────────────────────
+                  // Boutons d'action
                   Row(
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: _startChat,
-                          icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
+                          icon: const Icon(Icons.chat_bubble_outline_rounded,
+                              size: 18),
                           label: const Text('Envoyer un message'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _primary,
@@ -314,24 +343,29 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
                         ),
                       ),
                       const SizedBox(width: 10),
-                      // Favorite button
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         child: OutlinedButton(
                           onPressed: _loadingFav ? null : _toggleFavorite,
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: _isFavorite ? Colors.amber : Colors.grey,
+                            foregroundColor:
+                                _isFavorite ? Colors.amber : Colors.grey,
                             side: BorderSide(
-                              color: _isFavorite ? Colors.amber : Colors.grey.shade300,
+                              color: _isFavorite
+                                  ? Colors.amber
+                                  : Colors.grey.shade300,
                               width: 1.5,
                             ),
-                            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 14, horizontal: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
                           child: Icon(
-                            _isFavorite ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                            _isFavorite
+                                ? Icons.bookmark_rounded
+                                : Icons.bookmark_border_rounded,
                             size: 22,
                             color: _isFavorite ? Colors.amber : Colors.grey,
                           ),
@@ -342,7 +376,7 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
 
                   const SizedBox(height: 24),
 
-                  // ── Informations ───────────────────────────
+                  // Informations
                   _sectionTitle('Informations'),
                   const SizedBox(height: 12),
                   _infoCard([
@@ -351,15 +385,24 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
                     if (lawyer.phone != null)
                       _infoRow(Icons.phone_outlined, lawyer.phone!),
                     if (lawyer.wilaya != null)
-                      _infoRow(Icons.location_on_outlined,
+                      _infoRow(
+                          Icons.location_on_outlined,
                           [lawyer.wilaya, lawyer.daira, lawyer.commune]
                               .where((s) => s != null && s.isNotEmpty)
                               .join(', ')),
-                    if (lawyer.city != null)
-                      _infoRow(Icons.business_outlined, lawyer.city!),
+
+                    // ✅ تم استبدال السطر الأخير وعرض رابط الموقع بأيقونة خريطة
+                    if (lawyer.locationUrl != null &&
+                        lawyer.locationUrl!.isNotEmpty)
+                      _infoRow(
+                        Icons.map_outlined, // أيقونة الخريطة
+                        'Localisation sur la carte',
+                        isActionable: true,
+                        onTap: () => _openMap(lawyer.locationUrl),
+                      ),
                   ]),
 
-                  // ── Biographie ────────────────────────────
+                  // Biographie
                   if (lawyer.bio != null && lawyer.bio!.isNotEmpty) ...[
                     const SizedBox(height: 24),
                     _sectionTitle('À propos'),
@@ -383,7 +426,7 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
                     ),
                   ],
 
-                  // ── Évaluation ────────────────────────────
+                  // Évaluation
                   const SizedBox(height: 24),
                   _sectionTitle('Évaluer cet avocat'),
                   const SizedBox(height: 12),
@@ -410,46 +453,71 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
         ),
         child: Column(
           children: [
-            Text(value, style: TextStyle(
-              color: color, fontSize: 18, fontWeight: FontWeight.w800,
-            )),
+            Text(value,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                )),
             const SizedBox(height: 4),
-            Text(label, style: const TextStyle(
-              color: Colors.grey, fontSize: 11,
-            )),
+            Text(label,
+                style: const TextStyle(
+                  color: Colors.grey,
+                  fontSize: 11,
+                )),
           ],
         ),
       ),
     );
   }
 
-  Widget _sectionTitle(String title) => Text(title,
-    style: const TextStyle(
-      fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF263238),
-    ),
-  );
+  Widget _sectionTitle(String title) => Text(
+        title,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+          color: Color(0xFF263238),
+        ),
+      );
 
   Widget _infoCard(List<Widget> rows) => Container(
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: Colors.grey.shade100),
-    ),
-    child: Column(children: rows),
-  );
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.grey.shade100),
+        ),
+        child: Column(children: rows),
+      );
 
-  Widget _infoRow(IconData icon, String text) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-    child: Row(
-      children: [
-        Icon(icon, size: 18, color: _primary),
-        const SizedBox(width: 12),
-        Expanded(child: Text(text, style: const TextStyle(
-          fontSize: 14, color: Color(0xFF37474F),
-        ))),
-      ],
-    ),
-  );
+  Widget _infoRow(IconData icon, String text,
+          {bool isActionable = false, VoidCallback? onTap}) =>
+      InkWell(
+        onTap: isActionable ? onTap : null,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Icon(icon, size: 18, color: _primary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  text,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isActionable ? _primary : const Color(0xFF37474F),
+                    decoration: isActionable
+                        ? TextDecoration.underline
+                        : TextDecoration.none,
+                  ),
+                ),
+              ),
+              if (isActionable)
+                const Icon(Icons.arrow_forward_ios,
+                    size: 14, color: Colors.grey),
+            ],
+          ),
+        ),
+      );
 
   Widget _ratingCard() {
     if (_checkingRating) {
@@ -470,7 +538,8 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
             const SizedBox(height: 8),
             Text(
               'Vous avez donné ${_userRating.toStringAsFixed(1)}★',
-              style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                  color: Colors.green, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 12),
             const Text('Modifier votre évaluation :',
@@ -487,11 +556,15 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
             children: List.generate(5, (i) {
               final star = i + 1;
               return GestureDetector(
-                onTap: _submittingRating ? null : () => _submitRating(star.toDouble()),
+                onTap: _submittingRating
+                    ? null
+                    : () => _submitRating(star.toDouble()),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 6),
                   child: Icon(
-                    star <= _userRating ? Icons.star_rounded : Icons.star_border_rounded,
+                    star <= _userRating
+                        ? Icons.star_rounded
+                        : Icons.star_border_rounded,
                     color: Colors.amber,
                     size: 36,
                   ),

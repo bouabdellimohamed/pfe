@@ -45,6 +45,9 @@ class MessageModel {
   final String senderName;
   final String text;
   final DateTime createdAt;
+  final String? attachedFileName;
+  final String? attachedFileType;
+  final String? attachedFileBase64;
 
   MessageModel({
     required this.id,
@@ -52,6 +55,9 @@ class MessageModel {
     required this.senderName,
     required this.text,
     required this.createdAt,
+    this.attachedFileName,
+    this.attachedFileType,
+    this.attachedFileBase64,
   });
 
   factory MessageModel.fromFirestore(DocumentSnapshot doc) {
@@ -62,6 +68,9 @@ class MessageModel {
       senderName: (d['senderName'] ?? 'مستخدم').toString(),
       text: (d['text'] ?? '').toString(),
       createdAt: (d['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      attachedFileName: d['attachedFileName']?.toString(),
+      attachedFileType: d['attachedFileType']?.toString(),
+      attachedFileBase64: d['attachedFileBase64']?.toString(),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/lawyer_model.dart';
 import '../widgets/profile_avatar.dart';
 import 'lawyer_profile_screen.dart';
@@ -13,7 +14,7 @@ class DirectSearchScreen extends StatefulWidget {
   State<DirectSearchScreen> createState() => _DirectSearchScreenState();
 }
 
-class _DirectSearchScreenState extends State<DirectSearchScreen> {
+class _DirectSearchScreenState extends State<DirectSearchScreen> with SingleTickerProviderStateMixin {
   String? _selectedSpeciality;
   String? _selectedWilaya;
   String? _selectedCommune;
@@ -21,31 +22,44 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> {
   List<LawyerModel> _recommendedLawyers = [];
   bool _isLoadingRecs = false;
 
+  late AnimationController _animCtrl;
+  late Animation<double> _fadeAnim;
+
   @override
   void initState() {
     super.initState();
-    // ✅ تطبيق التخصص المُمرَّر من الـ Questionnaire تلقائياً
+    _animCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _fadeAnim = CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut);
+    _animCtrl.forward();
+
     if (widget.preselectedSpeciality != null) {
       _selectedSpeciality = widget.preselectedSpeciality;
     }
   }
 
-  final Color primaryColor = const Color(0xFF1565C0);
-  final Color darkText = const Color(0xFF101010);
-  final Color greyText = const Color(0xFF757575);
+  @override
+  void dispose() {
+    _animCtrl.dispose();
+    super.dispose();
+  }
 
-  final List<String> _specialities = [
-    'Généraliste',
-    'Droit familial',
-    'Droit pénal',
-    'Droit commercial',
-    'Droit civil',
-    'Droit immobilier',
-    'Droit administratif',
-    'Droit du travail',
-    'Droit des sociétés',
-    'Droit fiscal',
-    'Propriété Intellectuelle',
+  final Color primaryColor = const Color(0xFF0052D4);
+  final Color backgroundColor = const Color(0xFFF8FAFC);
+  final Color darkText = const Color(0xFF1E293B);
+  final Color greyText = const Color(0xFF64748B);
+
+  final List<Map<String, dynamic>> _specialities = [
+    {'name': 'Généraliste', 'icon': Icons.account_balance_rounded},
+    {'name': 'Droit familial', 'icon': Icons.family_restroom_rounded},
+    {'name': 'Droit pénal', 'icon': Icons.gavel_rounded},
+    {'name': 'Droit commercial', 'icon': Icons.handshake_rounded},
+    {'name': 'Droit civil', 'icon': Icons.groups_rounded},
+    {'name': 'Droit immobilier', 'icon': Icons.home_work_rounded},
+    {'name': 'Droit administratif', 'icon': Icons.account_balance_wallet_rounded},
+    {'name': 'Droit du travail', 'icon': Icons.work_rounded},
+    {'name': 'Droit des sociétés', 'icon': Icons.business_center_rounded},
+    {'name': 'Droit fiscal', 'icon': Icons.request_quote_rounded},
+    {'name': 'Propriété Intellectuelle', 'icon': Icons.lightbulb_rounded},
   ];
 
   final Map<String, List<String>> _locations = {
@@ -113,21 +127,13 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> {
     if (_selectedSpeciality == null || _selectedWilaya == null) return;
     setState(() => _isLoadingRecs = true);
     try {
-      // ✅ جلب كل المحامين ثم فلترة في الكود (لأن speciality محفوظ كـ "A, B, C")
-      final snap = await FirebaseFirestore.instance
-          .collection('lawyers')
-          .get();
-
-      var lawyers = snap.docs
-          .map((d) => LawyerModel.fromMap(d.data()))
-          .where((l) {
-            final lawyerSpec = l.speciality.toLowerCase();
-            final searchSpec = (_selectedSpeciality ?? '').toLowerCase();
-            final wilayaMatch = (l.wilaya ?? '').toLowerCase() ==
-                _selectedWilaya!.trim().toLowerCase();
-            return lawyerSpec.contains(searchSpec) && wilayaMatch;
-          })
-          .toList();
+      final snap = await FirebaseFirestore.instance.collection('lawyers').get();
+      var lawyers = snap.docs.map((d) => LawyerModel.fromMap(d.data())).where((l) {
+        final lawyerSpec = l.speciality.toLowerCase();
+        final searchSpec = (_selectedSpeciality ?? '').toLowerCase();
+        final wilayaMatch = (l.wilaya ?? '').toLowerCase() == _selectedWilaya!.trim().toLowerCase();
+        return lawyerSpec.contains(searchSpec) && wilayaMatch;
+      }).toList();
 
       lawyers.sort((a, b) {
         if (b.finalScore != a.finalScore) return b.finalScore.compareTo(a.finalScore);
@@ -144,6 +150,7 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> {
   }
 
   void _onSelectionChanged() {
+    HapticFeedback.lightImpact();
     if (_selectedSpeciality != null && _selectedWilaya != null) {
       _fetchRecommendations();
     } else {
@@ -151,250 +158,152 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> {
     }
   }
 
+  void _performSearch() {
+    HapticFeedback.mediumImpact();
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LawyersResultScreen(speciality: _selectedSpeciality!, wilaya: _selectedWilaya!),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: darkText, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          "Recherche directe",
-          style: TextStyle(color: darkText, fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Trouvez votre avocat\nidéal",
-                style: TextStyle(color: darkText, fontSize: 28, fontWeight: FontWeight.w800, height: 1.2),
+      backgroundColor: backgroundColor,
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 180.0,
+            floating: false,
+            pinned: true,
+            elevation: 0,
+            backgroundColor: primaryColor,
+            leading: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Material(
+                color: Colors.white.withOpacity(0.2),
+                shape: const CircleBorder(),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+                  onPressed: () => Navigator.pop(context),
+                ),
               ),
-              const SizedBox(height: 10),
-              Text(
-                "Sélectionnez une spécialité et votre localisation.",
-                style: TextStyle(color: greyText, fontSize: 15),
+            ),
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF0052D4), Color(0xFF4364F7), Color(0xFF6FB1FC)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      right: -20,
+                      top: 10,
+                      child: Icon(Icons.travel_explore_rounded, size: 150, color: Colors.white.withOpacity(0.1)),
+                    ),
+                    Positioned(
+                      left: 24,
+                      bottom: 30,
+                      right: 24,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text('RECHERCHE DIRECTE', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Trouvez votre avocat',
+                            style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 30),
-
-              _buildSectionTitle("1. Choisissez une spécialité"),
-              const SizedBox(height: 15),
-              _buildSpecialityGrid(),
-
-              const SizedBox(height: 30),
-              _buildSectionTitle("2. Votre Localisation"),
-              const SizedBox(height: 15),
-              _buildLocationForm(),
-
-              if (_selectedSpeciality != null && _selectedWilaya != null) ...[
-                const SizedBox(height: 30),
-                _buildRecommendationsSection(),
-              ],
-
-              const SizedBox(height: 40),
-              _buildSearchButton(),
-              const SizedBox(height: 30),
-            ],
+            ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRecommendationsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: primaryColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(Icons.recommend_rounded, color: primaryColor, size: 20),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Avocats recommandés",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: darkText),
-                  ),
-                  Text(
-                    "$_selectedSpeciality • $_selectedWilaya",
-                    style: TextStyle(color: greyText, fontSize: 13),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-
-        if (_isLoadingRecs)
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: CircularProgressIndicator(color: primaryColor, strokeWidth: 2),
-            ),
-          )
-        else if (_recommendedLawyers.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.grey[200]!),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.search_off_rounded, color: Colors.grey[400], size: 36),
-                const SizedBox(width: 16),
-                Expanded(
+          SliverToBoxAdapter(
+            child: FadeTransition(
+              opacity: _fadeAnim,
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("Aucun avocat trouvé", style: TextStyle(fontWeight: FontWeight.bold, color: darkText, fontSize: 15)),
-                      const SizedBox(height: 4),
-                      Text(
-                        "Pas d'avocats enregistrés pour cette spécialité à $_selectedWilaya.",
-                        style: TextStyle(color: greyText, fontSize: 13),
-                      ),
+                      _buildSectionHeader("1", "Spécialité juridique", "Quelle est la nature de votre affaire ?"),
+                      const SizedBox(height: 20),
+                      _buildSpecialityGrid(),
+                      
+                      const SizedBox(height: 40),
+                      _buildSectionHeader("2", "Localisation", "Où cherchez-vous votre avocat ?"),
+                      const SizedBox(height: 20),
+                      _buildLocationForm(),
+
+                      if (_selectedSpeciality != null && _selectedWilaya != null) ...[
+                        const SizedBox(height: 40),
+                        _buildSectionHeader("3", "Recommandations", "Avocats correspondant à vos critères"),
+                        const SizedBox(height: 20),
+                        _buildRecommendationsSection(),
+                      ],
+
+                      const SizedBox(height: 40),
+                      _buildSearchButton(),
+                      const SizedBox(height: 40),
                     ],
                   ),
                 ),
-              ],
-            ),
-          )
-        else
-          Column(
-            children: _recommendedLawyers.asMap().entries
-                .map((e) => _buildRecommendationCard(e.value, e.key))
-                .toList(),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildRecommendationCard(LawyerModel lawyer, int index) {
-    final medals = ['🥇', '🥈', '🥉'];
-    final medal = index < 3 ? medals[index] : '⭐';
-
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => LawyerProfileScreen(lawyer: lawyer)),
-        );
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: index == 0 ? const Color(0xFFFFD700).withOpacity(0.5) : Colors.grey[200]!,
-            width: index == 0 ? 1.5 : 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: index == 0 ? primaryColor.withOpacity(0.08) : Colors.black.withOpacity(0.03),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Text(medal, style: const TextStyle(fontSize: 22)),
-            const SizedBox(width: 12),
-
-            ProfileAvatar(
-              imageBase64: lawyer.profileImageBase64,
-              name: lawyer.name,
-              size: 52,
-              borderColor: Colors.grey[200]!,
-              borderWidth: 1,
-              backgroundColor: const Color(0xFF1565C0),
-            ),
-            const SizedBox(width: 14),
-
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    lawyer.name,
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: darkText),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 3),
-                  Row(
-                    children: [
-                      Icon(Icons.location_on_outlined, size: 12, color: greyText),
-                      const SizedBox(width: 3),
-                      Text(lawyer.wilaya ?? '', style: TextStyle(color: greyText, fontSize: 12)),
-                      if ((lawyer.experience ?? 0) > 0) ...[
-                        Text("  •  ", style: TextStyle(color: greyText, fontSize: 12)),
-                        Text("${lawyer.experience} ans exp.", style: TextStyle(color: greyText, fontSize: 12)),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 5),
-                  Row(
-                    children: [
-                      const Icon(Icons.star_rounded, color: Colors.amber, size: 14),
-                      const SizedBox(width: 3),
-                      Text(
-                        lawyer.rating > 0 ? lawyer.rating.toStringAsFixed(1) : "Nouveau",
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                      ),
-                      if (lawyer.reviewCount > 0)
-                        Text(" (${lawyer.reviewCount})", style: TextStyle(color: greyText, fontSize: 11)),
-                      const Spacer(),
-                      if (lawyer.finalScore > 0)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: primaryColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            "${lawyer.finalScore.toStringAsFixed(0)}pts",
-                            style: TextStyle(color: primaryColor, fontSize: 11, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
               ),
             ),
-            const SizedBox(width: 8),
-            Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey[400]),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryColor),
+  Widget _buildSectionHeader(String number, String title, String subtitle) {
+    return Row(
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: primaryColor.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(number, style: TextStyle(color: primaryColor, fontWeight: FontWeight.w800, fontSize: 16)),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: TextStyle(color: darkText, fontSize: 18, fontWeight: FontWeight.w800)),
+              Text(subtitle, style: TextStyle(color: greyText, fontSize: 13, fontWeight: FontWeight.w500)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -402,52 +311,60 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
       itemCount: _specialities.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 2.3,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 2.1,
       ),
       itemBuilder: (context, index) {
         final speciality = _specialities[index];
-        final isSelected = _selectedSpeciality == speciality;
+        final isSelected = _selectedSpeciality == speciality['name'];
 
         return GestureDetector(
           onTap: () {
-            setState(() => _selectedSpeciality = speciality);
+            setState(() => _selectedSpeciality = speciality['name']);
             _onSelectionChanged();
           },
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
               color: isSelected ? primaryColor : Colors.white,
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: isSelected ? primaryColor : Colors.grey[200]!,
+                color: isSelected ? primaryColor : Colors.grey.shade200,
                 width: isSelected ? 2 : 1.5,
               ),
               boxShadow: [
-                BoxShadow(
-                  color: isSelected ? primaryColor.withOpacity(0.15) : Colors.black.withOpacity(0.03),
-                  blurRadius: isSelected ? 12 : 8,
-                  offset: const Offset(0, 4),
-                ),
+                if (isSelected)
+                  BoxShadow(color: primaryColor.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4)),
               ],
             ),
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Text(
-                  speciality,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : darkText,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                    fontSize: 14,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  speciality['icon'],
+                  color: isSelected ? Colors.white : primaryColor.withOpacity(0.6),
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    speciality['name'],
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : darkText,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
           ),
         );
@@ -457,12 +374,11 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> {
 
   Widget _buildLocationForm() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 5, vertical: 10),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey[200]!, width: 1),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade200, width: 1.5),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Column(
@@ -481,8 +397,8 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> {
               _onSelectionChanged();
             },
           ),
-          if (_selectedWilaya != null) const SizedBox(height: 15),
-          if (_selectedWilaya != null)
+          if (_selectedWilaya != null) ...[
+            const SizedBox(height: 16),
             _buildDropdownField(
               value: _selectedCommune,
               hint: 'Commune (optionnel)',
@@ -490,6 +406,7 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> {
               items: _locations[_selectedWilaya]!,
               onChanged: (value) => setState(() => _selectedCommune = value),
             ),
+          ]
         ],
       ),
     );
@@ -503,22 +420,192 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> {
     required ValueChanged<String?> onChanged,
   }) {
     return Container(
-      width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(color: const Color(0xFFF8F9FA), borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
       child: DropdownButtonHideUnderline(
-        child: DropdownButtonFormField<String>(
-          initialValue: value,
+        child: DropdownButton<String>(
+          value: value,
           isExpanded: true,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: greyText, fontSize: 13),
-            prefixIcon: Icon(icon, color: primaryColor.withOpacity(0.5), size: 18),
-            border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+          icon: Icon(Icons.expand_more_rounded, color: greyText),
+          hint: Row(
+            children: [
+              Icon(icon, color: primaryColor.withOpacity(0.5), size: 20),
+              const SizedBox(width: 12),
+              Text(hint, style: TextStyle(color: greyText, fontSize: 14)),
+            ],
           ),
-          items: items.map((item) => DropdownMenuItem(value: item, child: Text(item, style: const TextStyle(fontSize: 14)))).toList(),
+          items: items.map((item) {
+            return DropdownMenuItem(
+              value: item,
+              child: Row(
+                children: [
+                  Icon(icon, color: primaryColor, size: 20),
+                  const SizedBox(width: 12),
+                  Text(item, style: TextStyle(color: darkText, fontSize: 14, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            );
+          }).toList(),
           onChanged: onChanged,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecommendationsSection() {
+    if (_isLoadingRecs) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: CircularProgressIndicator(color: primaryColor, strokeWidth: 2.5),
+        ),
+      );
+    }
+
+    if (_recommendedLawyers.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: Colors.grey.shade200)),
+              child: Icon(Icons.search_off_rounded, color: greyText, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Aucun résultat", style: TextStyle(fontWeight: FontWeight.w700, color: darkText, fontSize: 15)),
+                  const SizedBox(height: 4),
+                  Text(
+                    "Aucun avocat enregistré pour $_selectedSpeciality à $_selectedWilaya.",
+                    style: TextStyle(color: greyText, fontSize: 13, height: 1.4),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: _recommendedLawyers.asMap().entries.map((e) => _buildRecommendationCard(e.value, e.key)).toList(),
+    );
+  }
+
+  Widget _buildRecommendationCard(LawyerModel lawyer, int index) {
+    final bool isTop = index == 0;
+    
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        Navigator.push(context, MaterialPageRoute(builder: (_) => LawyerProfileScreen(lawyer: lawyer)));
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isTop ? const Color(0xFFF59E0B) : Colors.grey.shade200,
+            width: isTop ? 2 : 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isTop ? const Color(0xFFF59E0B).withOpacity(0.1) : Colors.black.withOpacity(0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            if (isTop)
+              Container(
+                margin: const EdgeInsets.only(right: 12),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: const Color(0xFFFEF3C7), shape: BoxShape.circle, border: Border.all(color: const Color(0xFFFDE68A))),
+                child: const Icon(Icons.emoji_events_rounded, color: Color(0xFFF59E0B), size: 20),
+              ),
+            ProfileAvatar(
+              imageBase64: lawyer.profileImageBase64,
+              name: lawyer.name,
+              size: 56,
+              borderColor: isTop ? const Color(0xFFFDE68A) : Colors.grey.shade200,
+              borderWidth: 2,
+              backgroundColor: primaryColor,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    lawyer.name,
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: darkText),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.location_on_rounded, size: 12, color: greyText),
+                      const SizedBox(width: 4),
+                      Text(lawyer.wilaya ?? '', style: TextStyle(color: greyText, fontSize: 12, fontWeight: FontWeight.w500)),
+                      if ((lawyer.experience ?? 0) > 0) ...[
+                        Text(" • ", style: TextStyle(color: greyText, fontSize: 12)),
+                        Text("${lawyer.experience} ans exp", style: TextStyle(color: greyText, fontSize: 12, fontWeight: FontWeight.w500)),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(color: const Color(0xFFFFFBEB), borderRadius: BorderRadius.circular(8)),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 14),
+                            const SizedBox(width: 4),
+                            Text(
+                              lawyer.rating > 0 ? lawyer.rating.toStringAsFixed(1) : "Nouveau",
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFFD97706)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Spacer(),
+                      if (lawyer.finalScore > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(color: primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                          child: Text(
+                            "${lawyer.finalScore.toStringAsFixed(0)} pts",
+                            style: TextStyle(color: primaryColor, fontSize: 11, fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey.shade300),
+          ],
         ),
       ),
     );
@@ -527,40 +614,34 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> {
   Widget _buildSearchButton() {
     final isFormValid = _selectedSpeciality != null && _selectedWilaya != null;
 
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
       width: double.infinity,
       height: 60,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
         boxShadow: isFormValid
-            ? [BoxShadow(color: primaryColor.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 6))]
+            ? [BoxShadow(color: primaryColor.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))]
             : [],
       ),
       child: ElevatedButton(
         onPressed: isFormValid ? _performSearch : null,
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryColor,
+          disabledBackgroundColor: Colors.grey.shade200,
           foregroundColor: Colors.white,
+          disabledForegroundColor: Colors.grey.shade400,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           elevation: 0,
         ),
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text("VOIR TOUS LES AVOCATS", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
-            SizedBox(width: 10),
-            Icon(Icons.search_rounded, size: 22),
+            Text("VOIR TOUS LES RÉSULTATS", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, letterSpacing: 0.5)),
+            SizedBox(width: 12),
+            Icon(Icons.search_rounded, size: 20),
           ],
         ),
-      ),
-    );
-  }
-
-  void _performSearch() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => LawyersResultScreen(speciality: _selectedSpeciality!, wilaya: _selectedWilaya!),
       ),
     );
   }

@@ -256,7 +256,7 @@ class _LawyerLoginScreenState extends State<LawyerLoginScreen>
                   final res = await _auth.resendVerificationEmail(_emailCtrl.text.trim(), _passCtrl.text);
                   setState(() {
                     _loading = false;
-                    _error = res ?? 'Rien renvoyé ! Vérifiez votre boîte mail.';
+                    _error = res ?? 'Lien renvoyé ! Vérifiez votre boîte mail (et les Spams).';
                   });
                 },
                 child: const Text('Renvoyer le lien', style: TextStyle(color: _gold, fontSize: 12, fontWeight: FontWeight.bold)),
@@ -277,7 +277,7 @@ class _LawyerLoginScreenState extends State<LawyerLoginScreen>
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Email envoyé à $email'),
+          content: Text('Email envoyé à $email (Vérifiez les spams)'),
           backgroundColor: Colors.green,
         ));
       }

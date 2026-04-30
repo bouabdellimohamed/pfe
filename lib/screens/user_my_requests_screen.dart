@@ -16,93 +16,184 @@ class UserMyRequestsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = AuthService();
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mes demandes'),
-        backgroundColor: const Color(0xFF1565C0),
-        foregroundColor: Colors.white,
-        automaticallyImplyLeading: false,
-      ),
-      body: StreamBuilder<List<RequestModel>>(
-        stream: auth.getUserRequests(uid),
-        builder: (ctx, snap) {
-          if (snap.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snap.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(
-                  'Erreur lors du chargement de l’historique:\n${snap.error}',
-                  textAlign: TextAlign.center,
-                ),
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: Column(
+        children: [
+          // ── CUSTOM HEADER ──
+          Container(
+            padding: EdgeInsets.only(
+                top: MediaQuery.of(context).padding.top + 20,
+                left: 24,
+                right: 24,
+                bottom: 24),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF0052D4), Color(0xFF4364F7), Color(0xFF6FB1FC)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-            );
-          }
-          final list = snap.data ?? [];
-          if (list.isEmpty) {
-            return const Center(child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.inbox_outlined, size: 60, color: Colors.grey),
-                SizedBox(height: 14),
-                Text('Aucune demande publiée',
-                    style: TextStyle(color: Colors.grey, fontSize: 15)),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0xFF0052D4),
+                  blurRadius: 20,
+                  offset: Offset(0, 8),
+                  spreadRadius: -10,
+                )
               ],
-            ));
-          }
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: list.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
-            itemBuilder: (_, i) => Dismissible(
-              key: Key(list[i].id),
-              direction: DismissDirection.endToStart,
-              background: Container(
-                alignment: Alignment.centerRight,
-                padding: const EdgeInsets.only(right: 24),
-                margin: const EdgeInsets.only(bottom: 4),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade600,
-                  borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(Icons.mark_email_unread_rounded, color: Colors.white, size: 28),
                 ),
-                child: const Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.delete_outline_rounded, color: Colors.white, size: 24),
-                    SizedBox(height: 4),
-                    Text('Supprimer', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
-                  ],
-                ),
-              ),
-              confirmDismiss: (_) async {
-                HapticFeedback.mediumImpact();
-                return await showDialog<bool>(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: const Text('Supprimer la demande'),
-                    content: Text('Supprimer "${list[i].title}" ?\nCette action est irréversible.'),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
-                      ElevatedButton(
-                        onPressed: () => Navigator.pop(ctx, true),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                        child: const Text('Supprimer', style: TextStyle(color: Colors.white)),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Mes Demandes',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Suivez vos publications et réponses',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w400,
+                        ),
                       ),
                     ],
                   ),
-                ) ?? false;
-              },
-              onDismissed: (_) {
-                FirebaseFirestore.instance.collection('publications').doc(list[i].id).delete();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('"${list[i].title}" supprimée')),
+                ),
+              ],
+            ),
+          ),
+          
+          // ── CONTENT ──
+          Expanded(
+            child: StreamBuilder<List<RequestModel>>(
+              stream: auth.getUserRequests(uid),
+              builder: (ctx, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator(color: Color(0xFF0052D4)));
+                }
+                if (snap.hasError) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        'Erreur:\n${snap.error}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  );
+                }
+                final list = snap.data ?? [];
+                if (list.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0052D4).withOpacity(0.05),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.inbox_rounded, size: 64, color: Color(0xFF0052D4)),
+                        ),
+                        const SizedBox(height: 24),
+                        const Text('Aucune demande',
+                            style: TextStyle(color: Color(0xFF1E293B), fontSize: 18, fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 8),
+                        const Text('Vos demandes publiées apparaîtront ici',
+                            style: TextStyle(color: Color(0xFF64748B), fontSize: 14)),
+                      ],
+                    ),
+                  );
+                }
+                return ListView.separated(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.all(20),
+                  itemCount: list.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 16),
+                  itemBuilder: (_, i) => Dismissible(
+                    key: Key(list[i].id),
+                    direction: DismissDirection.endToStart,
+                    background: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 28),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEF4444),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.delete_sweep_rounded, color: Colors.white, size: 28),
+                          SizedBox(height: 4),
+                          Text('Supprimer', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                    ),
+                    confirmDismiss: (_) async {
+                      HapticFeedback.mediumImpact();
+                      return await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          title: const Text('Supprimer ?', style: TextStyle(fontWeight: FontWeight.bold)),
+                          content: Text('Supprimer "${list[i].title}" ?\nCette action est irréversible.'),
+                          actions: [
+                            TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text('Annuler', style: TextStyle(color: Colors.grey))),
+                            ElevatedButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFEF4444),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                              child: const Text('Supprimer', style: TextStyle(color: Colors.white)),
+                            ),
+                          ],
+                        ),
+                      ) ?? false;
+                    },
+                    onDismissed: (_) {
+                      FirebaseFirestore.instance.collection('publications').doc(list[i].id).delete();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('"${list[i].title}" supprimée', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          backgroundColor: const Color(0xFF1E293B),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      );
+                    },
+                    child: _RequestCard(r: list[i]),
+                  ),
                 );
               },
-              child: _RequestCard(r: list[i]),
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
@@ -117,7 +208,6 @@ class _RequestCard extends StatefulWidget {
 }
 
 class _RequestCardState extends State<_RequestCard> {
-  static const _primary = Color(0xFF1565C0);
   bool _showLawyers = false;
 
   @override
@@ -125,91 +215,187 @@ class _RequestCardState extends State<_RequestCard> {
     final open = widget.r.status == 'open';
     final hasResponses = widget.r.respondedLawyerIds.isNotEmpty;
 
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          // ── العنوان والحالة ──
-          Row(children: [
-            Expanded(child: Text(widget.r.title,
-                style: const TextStyle(
-                    fontWeight: FontWeight.w700, fontSize: 14,
-                    color: Color(0xFF263238)))),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade100, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          )
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── HEADER ──
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: open
-                    ? Colors.green.withOpacity(0.1)
-                    : Colors.grey.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(6),
+                color: open ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC),
+                border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
               ),
-              child: Text(open ? 'Ouvert' : 'Fermé',
-                  style: TextStyle(
-                      color: open ? Colors.green : Colors.grey,
-                      fontSize: 11, fontWeight: FontWeight.w600)),
-            ),
-          ]),
-          const SizedBox(height: 4),
-          Text(widget.r.type,
-              style: const TextStyle(color: _primary, fontSize: 12)),
-          const SizedBox(height: 6),
-          Text(widget.r.description,
-              maxLines: 2, overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  color: Colors.grey, fontSize: 12, height: 1.4)),
-          const SizedBox(height: 10),
-
-          // ── زر عرض المحامين الذين ردّوا ──
-          Row(children: [
-            const Icon(Icons.people_outline_rounded, size: 13, color: Colors.grey),
-            const SizedBox(width: 4),
-            Text('${widget.r.respondedLawyerIds.length} réponse(s)',
-                style: const TextStyle(color: Colors.grey, fontSize: 11)),
-            const Spacer(),
-            if (hasResponses)
-              GestureDetector(
-                onTap: () => setState(() => _showLawyers = !_showLawyers),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: _primary.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: _primary.withOpacity(0.2)),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Text(
+                      widget.r.type,
+                      style: const TextStyle(
+                        color: Color(0xFF334155),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Text(_showLawyers ? 'Masquer' : 'Voir avocats',
-                        style: const TextStyle(
-                            color: _primary, fontSize: 11, fontWeight: FontWeight.w600)),
-                    const SizedBox(width: 4),
-                    Icon(_showLawyers ? Icons.expand_less : Icons.expand_more,
-                        color: _primary, size: 14),
-                  ]),
-                ),
+                  const Spacer(),
+                  Icon(
+                    open ? Icons.check_circle_rounded : Icons.lock_rounded,
+                    size: 16,
+                    color: open ? const Color(0xFF16A34A) : const Color(0xFF64748B),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    open ? 'Ouvert' : 'Fermé',
+                    style: TextStyle(
+                      color: open ? const Color(0xFF16A34A) : const Color(0xFF64748B),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
-          ]),
+            ),
+            
+            // ── CONTENT ──
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.r.title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    widget.r.description,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF64748B),
+                      fontSize: 13,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
 
-          // ── قائمة المحامين الذين ردّوا ──
-          if (_showLawyers && hasResponses) ...[
-            const SizedBox(height: 10),
-            const Divider(height: 1),
-            const SizedBox(height: 8),
-            ...widget.r.respondedLawyerIds.map((lawyerId) =>
-              _LawyerResponseTile(
-                lawyerId: lawyerId,
-                requestId: widget.r.id,
-                userId: widget.r.userId,
+                  // ── RÉPONSES BUTTON ──
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0052D4).withOpacity(0.08),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.people_alt_rounded, size: 14, color: Color(0xFF0052D4)),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${widget.r.respondedLawyerIds.length} réponse(s)',
+                        style: const TextStyle(
+                          color: Color(0xFF0052D4),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const Spacer(),
+                      if (hasResponses)
+                        GestureDetector(
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            setState(() => _showLawyers = !_showLawyers);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: _showLawyers ? const Color(0xFF0052D4) : Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _showLawyers ? const Color(0xFF0052D4) : Colors.grey.shade300,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _showLawyers ? 'Masquer' : 'Voir les avocats',
+                                  style: TextStyle(
+                                    color: _showLawyers ? Colors.white : const Color(0xFF334155),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Icon(
+                                  _showLawyers ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                                  color: _showLawyers ? Colors.white : const Color(0xFF334155),
+                                  size: 16,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  
+                  // ── LISTE DES AVOCATS ──
+                  AnimatedCrossFade(
+                    firstChild: const SizedBox(width: double.infinity, height: 0),
+                    secondChild: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 16),
+                        const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                        const SizedBox(height: 12),
+                        ...widget.r.respondedLawyerIds.map((lawyerId) =>
+                          _LawyerResponseTile(
+                            lawyerId: lawyerId,
+                            requestId: widget.r.id,
+                            userId: widget.r.userId,
+                          ),
+                        ),
+                      ],
+                    ),
+                    crossFadeState: _showLawyers && hasResponses ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                    duration: const Duration(milliseconds: 300),
+                    sizeCurve: Curves.easeOutCubic,
+                  ),
+                ],
               ),
             ),
           ],
-        ]),
+        ),
       ),
     );
   }
 }
 
-// ── بطاقة محامي ردّ على الطلب ──────────────────────────────────
 class _LawyerResponseTile extends StatefulWidget {
   final String lawyerId;
   final String requestId;
@@ -225,7 +411,6 @@ class _LawyerResponseTile extends StatefulWidget {
 }
 
 class _LawyerResponseTileState extends State<_LawyerResponseTile> {
-  static const _primary = Color(0xFF1565C0);
   LawyerModel? _lawyer;
   bool _loading = true;
   bool _openingChat = false;
@@ -238,8 +423,7 @@ class _LawyerResponseTileState extends State<_LawyerResponseTile> {
 
   Future<void> _loadLawyer() async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('lawyers').doc(widget.lawyerId).get();
+      final doc = await FirebaseFirestore.instance.collection('lawyers').doc(widget.lawyerId).get();
       if (doc.exists && mounted) {
         setState(() {
           _lawyer = LawyerModel.fromMap(doc.data()!);
@@ -253,9 +437,9 @@ class _LawyerResponseTileState extends State<_LawyerResponseTile> {
 
   Future<void> _openChat() async {
     if (_openingChat) return;
+    HapticFeedback.mediumImpact();
     setState(() => _openingChat = true);
     try {
-      // ✅ نتحقق أولاً إذا كان هناك محادثة موجودة
       final existing = await FirebaseFirestore.instance
           .collection('conversations')
           .where('userId', isEqualTo: widget.userId)
@@ -267,8 +451,7 @@ class _LawyerResponseTileState extends State<_LawyerResponseTile> {
       if (existing.docs.isNotEmpty) {
         convId = existing.docs.first.id;
       } else {
-        final doc = await FirebaseFirestore.instance
-            .collection('conversations').add({
+        final doc = await FirebaseFirestore.instance.collection('conversations').add({
           'requestId': widget.requestId,
           'userId': widget.userId,
           'lawyerId': widget.lawyerId,
@@ -282,13 +465,13 @@ class _LawyerResponseTileState extends State<_LawyerResponseTile> {
       }
 
       if (mounted) {
-        Navigator.push(context,
-            MaterialPageRoute(builder: (_) => ChatThreadScreen(conversationId: convId)));
+        Navigator.push(context, MaterialPageRoute(builder: (_) => ChatThreadScreen(conversationId: convId)));
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red));
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+        );
       }
     } finally {
       if (mounted) setState(() => _openingChat = false);
@@ -299,60 +482,80 @@ class _LawyerResponseTileState extends State<_LawyerResponseTile> {
   Widget build(BuildContext context) {
     if (_loading) {
       return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 6),
-        child: LinearProgressIndicator(minHeight: 2),
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: LinearProgressIndicator(minHeight: 2, color: Color(0xFFBFDBFE)),
       );
     }
     if (_lawyer == null) return const SizedBox.shrink();
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(children: [
-        // صورة المحامي
-        ProfileAvatar(
-          imageBase64: _lawyer!.profileImageBase64,
-          name: _lawyer!.name,
-          size: 38,
-          borderColor: Colors.grey.shade200,
-          borderWidth: 1,
-          backgroundColor: const Color(0xFF1565C0),
-        ),
-        const SizedBox(width: 10),
-        // اسم المحامي والتخصص
-        Expanded(child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(_lawyer!.name,
-                style: const TextStyle(
-                    fontWeight: FontWeight.w700, fontSize: 13,
-                    color: Color(0xFF263238))),
-            Text(_lawyer!.speciality.split(',').first.trim(),
-                style: const TextStyle(color: Colors.grey, fontSize: 11)),
-          ],
-        )),
-        // زر المراسلة
-        _openingChat
-            ? const SizedBox(width: 24, height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2, color: _primary))
-            : GestureDetector(
-                onTap: _openChat,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _primary,
-                    borderRadius: BorderRadius.circular(8),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        children: [
+          ProfileAvatar(
+            imageBase64: _lawyer!.profileImageBase64,
+            name: _lawyer!.name,
+            size: 42,
+            borderColor: Colors.white,
+            borderWidth: 2,
+            backgroundColor: const Color(0xFF0052D4),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _lawyer!.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: Color(0xFF1E293B),
                   ),
-                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.chat_bubble_outline_rounded,
-                        color: Colors.white, size: 13),
-                    SizedBox(width: 5),
-                    Text('Contacter',
-                        style: TextStyle(color: Colors.white,
-                            fontSize: 11, fontWeight: FontWeight.bold)),
-                  ]),
                 ),
-              ),
-      ]),
+                const SizedBox(height: 2),
+                Text(
+                  _lawyer!.speciality.split(',').first.trim(),
+                  style: const TextStyle(color: Color(0xFF64748B), fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          _openingChat
+              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFF0052D4)))
+              : GestureDetector(
+                  onTap: _openChat,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0052D4),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF0052D4).withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        )
+                      ],
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.chat_rounded, color: Colors.white, size: 14),
+                        SizedBox(width: 6),
+                        Text('Contacter', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ),
+        ],
+      ),
     );
   }
 }

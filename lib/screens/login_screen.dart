@@ -88,7 +88,8 @@ class _UserSignUpScreenState extends State<UserSignUpScreen> {
             Expanded(child: Text('Compte créé !', style: TextStyle(fontWeight: FontWeight.w700))),
           ]),
           content: const Text(
-            'Un lien de vérification a été envoyé à votre adresse email.\n\n'
+            'Un lien de vérification a été envoyé à votre adresse email.\n'
+            '(Vérifiez vos courriers indésirables / Spam)\n\n'
             'Veuillez cliquer sur ce lien pour activer votre compte, puis connectez-vous.',
             style: TextStyle(height: 1.5),
           ),
@@ -363,7 +364,7 @@ class _UserSignUpScreenState extends State<UserSignUpScreen> {
                                       final res = await auth.resendVerificationEmail(emailCtrl.text.trim(), passCtrl.text);
                                       setState(() {
                                         loading = false;
-                                        error = res ?? 'Rien renvoyé ! Vérifiez votre boîte mail.';
+                                        error = res ?? 'Lien renvoyé ! Vérifiez votre boîte (et les Spams).';
                                       });
                                     },
                                     child: const Text('Renvoyer le lien', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
