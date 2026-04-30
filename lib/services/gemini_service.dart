@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 class GeminiService {
   static Future<String> classifyCase(String description) async {
-    final apiKey = "PUT_YOUR_API_KEY_HERE";
+    final apiKey = "AIzaSyDio1lwcPDj7NE61Eha7miy1oyGihfMNX0";
 
     final prompt =
         """

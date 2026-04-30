@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
 import '../models/lawyer_model.dart';
+import '../widgets/profile_avatar.dart';
 import 'lawyer_edit_profile_screen.dart';
 
 class LawyerDashboardScreen extends StatefulWidget {
@@ -181,9 +182,6 @@ class _LawyerDashboardScreenState extends State<LawyerDashboardScreen> with Sing
   );
 
   Widget _buildProfileCard() {
-    final initials = _lawyer?.name.trim().isNotEmpty == true
-        ? _lawyer!.name.trim().split(' ').map((e) => e[0]).take(2).join().toUpperCase()
-        : 'A';
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -195,23 +193,14 @@ class _LawyerDashboardScreenState extends State<LawyerDashboardScreen> with Sing
         ],
       ),
       child: Column(children: [
-        Stack(alignment: Alignment.bottomRight, children: [
-          Container(
-            width: 100, height: 100,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [_goldLight.withOpacity(0.2), _gold.withOpacity(0.05)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              border: Border.all(color: _gold, width: 2.5),
-              boxShadow: [BoxShadow(color: _gold.withOpacity(0.15), blurRadius: 20, spreadRadius: 5)],
-            ),
-            child: Center(child: Text(initials,
-                style: GoogleFonts.outfit(fontSize: 32, fontWeight: FontWeight.bold, color: _gold))),
-          ),
-          Container(
+        ProfileAvatar(
+          imageBase64: _lawyer?.profileImageBase64,
+          name: _lawyer?.name,
+          size: 100,
+          borderColor: _gold,
+          borderWidth: 2.5,
+          backgroundColor: const Color(0xFF1B2D42),
+          badge: Container(
             width: 28, height: 28,
             decoration: BoxDecoration(
               color: const Color(0xFF4CAF50), shape: BoxShape.circle,
@@ -219,7 +208,7 @@ class _LawyerDashboardScreenState extends State<LawyerDashboardScreen> with Sing
             ),
             child: const Icon(Icons.check, color: Colors.white, size: 14),
           ),
-        ]),
+        ),
         const SizedBox(height: 18),
         Text(_lawyer?.name ?? 'Avocat', style: GoogleFonts.outfit(
             color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 0.5)),

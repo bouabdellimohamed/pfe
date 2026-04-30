@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
+import '../services/profile_image_service.dart';
+import '../widgets/profile_avatar.dart';
 import '../theme/app_theme.dart';
 import 'favorites_screen.dart';
 
@@ -20,6 +22,145 @@ class _UserProfileManagementScreenState
   final _auth = AuthService();
   final _firestore = FirebaseFirestore.instance;
   bool _isLoading = false;
+  String? _profileImageBase64;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileImage();
+  }
+
+  /// ✅ تحميل صورة الملف الشخصي من Firestore
+  Future<void> _loadProfileImage() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    try {
+      final doc = await _firestore.collection('users').doc(user.uid).get();
+      if (doc.exists && mounted) {
+        setState(() {
+          _profileImageBase64 = doc.data()?['profileImageBase64'];
+        });
+      }
+    } catch (_) {}
+  }
+
+  /// ✅ تغيير صورة الملف الشخصي
+  Future<void> _changeProfileImage() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    // عرض خيارات: تغيير أو حذف
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text('Photo de profil',
+                style: GoogleFonts.poppins(
+                    fontSize: 18, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 20),
+            _bottomSheetOption(
+              icon: Icons.photo_library_rounded,
+              label: 'Choisir depuis la galerie',
+              color: AppColors.primary,
+              onTap: () => Navigator.pop(ctx, 'pick'),
+            ),
+            if (_profileImageBase64 != null) ...[
+              const SizedBox(height: 10),
+              _bottomSheetOption(
+                icon: Icons.delete_outline_rounded,
+                label: 'Supprimer la photo',
+                color: Colors.red,
+                onTap: () => Navigator.pop(ctx, 'remove'),
+              ),
+            ],
+            const SizedBox(height: 10),
+            _bottomSheetOption(
+              icon: Icons.close_rounded,
+              label: 'Annuler',
+              color: Colors.grey,
+              onTap: () => Navigator.pop(ctx),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (action == null) return;
+
+    if (action == 'pick') {
+      setState(() => _isLoading = true);
+      final base64 = await ProfileImageService.pickAndCompressImage(context);
+      if (base64 != null) {
+        final success =
+            await ProfileImageService.saveUserProfileImage(user.uid, base64);
+        if (success && mounted) {
+          setState(() => _profileImageBase64 = base64);
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Photo de profil mise à jour !'),
+            backgroundColor: Colors.green,
+          ));
+        }
+      }
+      if (mounted) setState(() => _isLoading = false);
+    } else if (action == 'remove') {
+      setState(() => _isLoading = true);
+      final success = await ProfileImageService.removeProfileImage(
+        user.uid,
+        isLawyer: false,
+      );
+      if (success && mounted) {
+        setState(() => _profileImageBase64 = null);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Photo de profil supprimée'),
+        ));
+      }
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Widget _bottomSheetOption({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 22),
+            const SizedBox(width: 14),
+            Text(label,
+                style: TextStyle(
+                    color: color, fontSize: 15, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
+    );
+  }
 
   // ╔═══════════════════════════════════════╗
   // ║  تعديل بيانات الملف الشخصي             ║
@@ -307,6 +448,57 @@ class _UserProfileManagementScreenState
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                // ──── صورة الملف الشخصي ────
+                Center(
+                  child: GestureDetector(
+                    onTap: _changeProfileImage,
+                    child: ProfileAvatar(
+                      imageBase64: _profileImageBase64,
+                      name: user?.displayName,
+                      size: 110,
+                      borderColor: AppColors.primary.withOpacity(0.3),
+                      borderWidth: 3,
+                      badge: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withOpacity(0.3),
+                              blurRadius: 8,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Center(
+                  child: TextButton(
+                    onPressed: _changeProfileImage,
+                    child: Text(
+                      _profileImageBase64 != null
+                          ? 'Changer la photo'
+                          : 'Ajouter une photo',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+
                 // ──── معلومات الحساب ────
                 Card(
                   elevation: 2,

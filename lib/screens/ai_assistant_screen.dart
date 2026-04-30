@@ -22,7 +22,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
   bool _isLoading = false;
   final List<_ChatMessage> _messages = [];
 
-  static const _apiKey = 'AIzaSyB2SUOvzXcCD8Qurk7usXgC4Ve5CfGkpHE';
+  static const _apiKey = 'AIzaSyDio1lwcPDj7NE61Eha7miy1oyGihfMNX0';
 
   static const _suggestions = [
     '🏠  J\'ai un problème avec mon propriétaire',

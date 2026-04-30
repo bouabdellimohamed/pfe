@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../models/lawyer_model.dart';
+import '../widgets/profile_avatar.dart';
 import 'lawyer_profile_screen.dart';
 import 'lawyers_result_screen.dart';
 
@@ -288,10 +289,6 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> {
   }
 
   Widget _buildRecommendationCard(LawyerModel lawyer, int index) {
-    final imageUrl = (lawyer.photoUrl != null && lawyer.photoUrl!.isNotEmpty)
-        ? lawyer.photoUrl!
-        : 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(lawyer.name)}&background=1565C0&color=ffffff';
-
     final medals = ['🥇', '🥈', '🥉'];
     final medal = index < 3 ? medals[index] : '⭐';
 
@@ -325,14 +322,13 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> {
             Text(medal, style: const TextStyle(fontSize: 22)),
             const SizedBox(width: 12),
 
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                image: DecorationImage(image: NetworkImage(imageUrl), fit: BoxFit.cover),
-                border: Border.all(color: Colors.grey[200]!, width: 1),
-              ),
+            ProfileAvatar(
+              imageBase64: lawyer.profileImageBase64,
+              name: lawyer.name,
+              size: 52,
+              borderColor: Colors.grey[200]!,
+              borderWidth: 1,
+              backgroundColor: const Color(0xFF1565C0),
             ),
             const SizedBox(width: 14),
 

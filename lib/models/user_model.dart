@@ -7,6 +7,7 @@ class UserModel {
   final String? phone;
   final int? age;
   final String role; // 'user' | 'lawyer' | 'admin'
+  final String? profileImageBase64; // ✅ صورة الملف الشخصي (اختيارية)
   final DateTime createdAt;
 
   UserModel({
@@ -16,6 +17,7 @@ class UserModel {
     this.phone,
     this.age,
     this.role = 'user',
+    this.profileImageBase64,
     required this.createdAt,
   });
 
@@ -26,6 +28,7 @@ class UserModel {
         'phone': phone,
         'age': age,
         'role': role,
+        'profileImageBase64': profileImageBase64,
         'createdAt': Timestamp.fromDate(createdAt),
       };
 
@@ -36,6 +39,7 @@ class UserModel {
         phone: m['phone'],
         age: m['age'],
         role: m['role'] ?? 'user',
+        profileImageBase64: m['profileImageBase64'],
         createdAt: m['createdAt'] is Timestamp
             ? (m['createdAt'] as Timestamp).toDate()
             : DateTime.now(),

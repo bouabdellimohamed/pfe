@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/lawyer_model.dart';
 import '../services/favorites_service.dart';
+import '../widgets/profile_avatar.dart';
 import 'chat_thread_screen.dart';
 
 class LawyerProfileScreen extends StatefulWidget {
@@ -194,9 +194,6 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final lawyer = widget.lawyer;
-    final imageUrl = (lawyer.photoUrl != null && lawyer.photoUrl!.isNotEmpty)
-        ? lawyer.photoUrl!
-        : 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(lawyer.name)}&background=1565C0&color=ffffff&size=200';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -230,21 +227,13 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
                     right: 0,
                     child: Column(
                       children: [
-                        Container(
-                          width: 90,
-                          height: 90,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 3),
-                          ),
-                          child: ClipOval(
-                            child: CachedNetworkImage(
-                              imageUrl: imageUrl,
-                              fit: BoxFit.cover,
-                              placeholder: (context, url) => const Center(child: CircularProgressIndicator(color: Colors.white)),
-                              errorWidget: (context, url, error) => const Icon(Icons.person, color: Colors.white, size: 40),
-                            ),
-                          ),
+                        ProfileAvatar(
+                          imageBase64: lawyer.profileImageBase64,
+                          name: lawyer.name,
+                          size: 90,
+                          borderColor: Colors.white,
+                          borderWidth: 3,
+                          backgroundColor: const Color(0xFF1565C0),
                         ),
                         const SizedBox(height: 12),
                         Row(

@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../models/lawyer_model.dart';
+import '../widgets/profile_avatar.dart';
 import 'lawyer_profile_screen.dart';
 
 class LawyersResultScreen extends StatelessWidget {
@@ -114,10 +114,6 @@ class LawyersResultScreen extends StatelessWidget {
   Widget _buildPremiumLawyerCard(BuildContext context, LawyerModel lawyer) {
     const Color primaryBlue = Color(0xFF1565C0);
 
-    final imageUrl = (lawyer.photoUrl != null && lawyer.photoUrl!.isNotEmpty)
-        ? lawyer.photoUrl!
-        : 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(lawyer.name)}&background=1565C0&color=ffffff';
-
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
@@ -136,23 +132,13 @@ class LawyersResultScreen extends StatelessWidget {
                 // صورة المحامي
                 Stack(
                   children: [
-                    Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF5F7FA),
-                        borderRadius: BorderRadius.circular(22),
-                        border: Border.all(color: const Color(0xFFF1F1F1), width: 1.5),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: CachedNetworkImage(
-                          imageUrl: imageUrl,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                          errorWidget: (context, url, error) => const Icon(Icons.person, color: Colors.grey),
-                        ),
-                      ),
+                    ProfileAvatar(
+                      imageBase64: lawyer.profileImageBase64,
+                      name: lawyer.name,
+                      size: 72,
+                      borderColor: const Color(0xFFF1F1F1),
+                      borderWidth: 1.5,
+                      backgroundColor: const Color(0xFF1565C0),
                     ),
                     Positioned(
                       right: 4, top: 4,

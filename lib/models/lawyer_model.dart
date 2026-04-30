@@ -8,6 +8,7 @@ class LawyerModel {
   final String? city;
   final int? experience; // لـ 25% من السكور
   final String? photoUrl;
+  final String? profileImageBase64; // ✅ صورة الملف الشخصي كـ Base64 (اختيارية)
   final String? bio;
   final bool isGeneralist;
   final String? wilaya;
@@ -32,6 +33,7 @@ class LawyerModel {
     this.city,
     this.experience,
     this.photoUrl,
+    this.profileImageBase64,
     this.bio,
     required this.isGeneralist,
     this.wilaya,
@@ -57,6 +59,7 @@ class LawyerModel {
       'city': city,
       'experience': experience,
       'photoUrl': photoUrl,
+      'profileImageBase64': profileImageBase64,
       'bio': bio,
       'role': 'lawyer',
       'isGeneralist': isGeneralist,
@@ -84,6 +87,7 @@ class LawyerModel {
       city: map['city'],
       experience: map['experience'] ?? 0,
       photoUrl: map['photoUrl'],
+      profileImageBase64: map['profileImageBase64'],
       bio: map['bio'],
       isGeneralist: map['isGeneralist'] ?? false,
       wilaya: map['wilaya'],

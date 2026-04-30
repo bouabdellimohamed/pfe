@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
+import '../services/profile_image_service.dart';
+import '../widgets/profile_avatar.dart';
 import '../models/lawyer_model.dart';
 
 class LawyerEditProfileScreen extends StatefulWidget {
@@ -23,6 +25,8 @@ class _LawyerEditProfileScreenState extends State<LawyerEditProfileScreen> {
   bool _saving = false;
   String _error = '';
   String? _lawyerUid;
+  String? _profileImageBase64;
+  bool _imageChanged = false;
 
   final List<String> _allSpecialities = [
     'Droit familial', 'Droit pénal', 'Droit commercial',
@@ -66,6 +70,7 @@ class _LawyerEditProfileScreenState extends State<LawyerEditProfileScreen> {
     _phoneCtrl.text = l.phone ?? '';
     _expCtrl.text = l.experience?.toString() ?? '';
     _bioCtrl.text = l.bio ?? '';
+    _profileImageBase64 = l.profileImageBase64;
     _selected.clear();
     if (l.speciality.isNotEmpty) {
       _selected.addAll(l.speciality.split(', ').where((s) => s.isNotEmpty));
@@ -88,6 +93,102 @@ class _LawyerEditProfileScreenState extends State<LawyerEditProfileScreen> {
     super.dispose();
   }
 
+  /// ✅ تغيير صورة الملف الشخصي
+  Future<void> _changeProfileImage() async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: _navyCard,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: _textSecondary.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text('Photo de profil',
+                style: TextStyle(color: _textPrimary, fontSize: 18, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 20),
+            _photoOption(
+              icon: Icons.photo_library_rounded,
+              label: 'Choisir depuis la galerie',
+              color: _gold,
+              onTap: () => Navigator.pop(ctx, 'pick'),
+            ),
+            if (_profileImageBase64 != null) ...[
+              const SizedBox(height: 10),
+              _photoOption(
+                icon: Icons.delete_outline_rounded,
+                label: 'Supprimer la photo',
+                color: const Color(0xFFEF5350),
+                onTap: () => Navigator.pop(ctx, 'remove'),
+              ),
+            ],
+            const SizedBox(height: 10),
+            _photoOption(
+              icon: Icons.close_rounded,
+              label: 'Annuler',
+              color: _textSecondary,
+              onTap: () => Navigator.pop(ctx),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (action == null) return;
+
+    if (action == 'pick') {
+      final base64 = await ProfileImageService.pickAndCompressImage(context);
+      if (base64 != null && mounted) {
+        setState(() {
+          _profileImageBase64 = base64;
+          _imageChanged = true;
+        });
+      }
+    } else if (action == 'remove') {
+      setState(() {
+        _profileImageBase64 = null;
+        _imageChanged = true;
+      });
+    }
+  }
+
+  Widget _photoOption({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 22),
+            const SizedBox(width: 14),
+            Text(label, style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selected.isEmpty) {
@@ -96,13 +197,27 @@ class _LawyerEditProfileScreenState extends State<LawyerEditProfileScreen> {
     setState(() { _saving = true; _error = ''; });
     try {
       final uid = _lawyerUid ?? FirebaseAuth.instance.currentUser?.uid ?? '';
-      await _auth.updateLawyerProfile(uid, {
+      
+      final updates = <String, dynamic>{
         'name': _nameCtrl.text.trim(),
         'phone': _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
         'experience': int.tryParse(_expCtrl.text),
         'speciality': _selected.join(', '),
         'bio': _bioCtrl.text.trim().isEmpty ? null : _bioCtrl.text.trim(),
-      });
+      };
+
+      // ✅ حفظ صورة الملف الشخصي إذا تم تغييرها
+      if (_imageChanged) {
+        if (_profileImageBase64 != null) {
+          updates['profileImageBase64'] = _profileImageBase64;
+        } else {
+          // حذف الصورة
+          await ProfileImageService.removeProfileImage(uid, isLawyer: true);
+        }
+      }
+
+      await _auth.updateLawyerProfile(uid, updates);
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Profil mis à jour !'), backgroundColor: Color(0xFF2E7D32)));
@@ -158,6 +273,42 @@ class _LawyerEditProfileScreenState extends State<LawyerEditProfileScreen> {
           padding: const EdgeInsets.all(20),
           children: [
             const SizedBox(height: 8),
+
+            // ✅ Section: Photo de profil
+            Center(
+              child: GestureDetector(
+                onTap: _changeProfileImage,
+                child: ProfileAvatar(
+                  imageBase64: _profileImageBase64,
+                  name: _nameCtrl.text,
+                  size: 100,
+                  borderColor: _gold,
+                  borderWidth: 2.5,
+                  backgroundColor: _navyLight,
+                  badge: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: _gold,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: _navy, width: 2.5),
+                    ),
+                    child: const Icon(Icons.camera_alt_rounded, color: _navy, size: 16),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Center(
+              child: TextButton(
+                onPressed: _changeProfileImage,
+                child: Text(
+                  _profileImageBase64 != null ? 'Changer la photo' : 'Ajouter une photo (optionnel)',
+                  style: const TextStyle(color: _gold, fontSize: 13, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
 
             // Section: Infos perso
             _sectionLabel('Informations personnelles'),

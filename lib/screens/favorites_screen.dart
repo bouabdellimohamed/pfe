@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/lawyer_model.dart';
 import '../services/favorites_service.dart';
+import '../widgets/profile_avatar.dart';
 import '../theme/app_theme.dart';
 import 'lawyer_profile_screen.dart';
 
@@ -105,10 +106,6 @@ class _FavoriteLawyerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = (lawyer.photoUrl?.isNotEmpty == true)
-        ? lawyer.photoUrl!
-        : 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(lawyer.name)}&background=1565C0&color=ffffff&size=200';
-
     return Dismissible(
       key: Key(lawyer.uid),
       direction: DismissDirection.endToStart,
@@ -170,17 +167,13 @@ class _FavoriteLawyerCard extends StatelessWidget {
           child: Row(
             children: [
               // Avatar
-              Container(
-                width: 58,
-                height: 58,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  image: DecorationImage(
-                    image: NetworkImage(imageUrl),
-                    fit: BoxFit.cover,
-                  ),
-                  border: Border.all(color: AppColors.grey200),
-                ),
+              ProfileAvatar(
+                imageBase64: lawyer.profileImageBase64,
+                name: lawyer.name,
+                size: 58,
+                borderColor: AppColors.grey200,
+                borderWidth: 1,
+                backgroundColor: const Color(0xFF1565C0),
               ),
               const SizedBox(width: 14),
 

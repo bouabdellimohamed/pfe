@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 void main() async {
-  const apiKey = 'AIzaSyB2SUOvzXcCD8Qurk7usXgC4Ve5CfGkpHE';
+  const apiKey = 'AIzaSyDio1lwcPDj7NE61Eha7miy1oyGihfMNX0';
   
   print('Testing gemini-pro...');
   var url = Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=$apiKey');

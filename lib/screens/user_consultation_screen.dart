@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/auth_service.dart';
 import '../models/consultation_model.dart';
 
@@ -290,7 +292,52 @@ class _ConsultationHistory extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           itemCount: list.length,
           separatorBuilder: (_, __) => const SizedBox(height: 10),
-          itemBuilder: (_, i) => _ConsultCard(c: list[i]),
+          itemBuilder: (_, i) => Dismissible(
+            key: Key(list[i].id),
+            direction: DismissDirection.endToStart,
+            background: Container(
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 24),
+              margin: const EdgeInsets.only(bottom: 4),
+              decoration: BoxDecoration(
+                color: Colors.red.shade600,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.delete_outline_rounded, color: Colors.white, size: 24),
+                  SizedBox(height: 4),
+                  Text('Supprimer', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+            confirmDismiss: (_) async {
+              HapticFeedback.mediumImpact();
+              return await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Supprimer la consultation'),
+                  content: const Text('Voulez-vous supprimer cette consultation ?\nCette action est irréversible.'),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                      child: const Text('Supprimer', style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                ),
+              ) ?? false;
+            },
+            onDismissed: (_) {
+              FirebaseFirestore.instance.collection('consultations').doc(list[i].id).delete();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Consultation supprimée')),
+              );
+            },
+            child: _ConsultCard(c: list[i]),
+          ),
         );
       },
     );
