@@ -298,55 +298,83 @@ class _NewConsultationFormState extends State<_NewConsultationForm> {
                   fontSize: 16,
                   color: Color(0xFF1E293B))),
           const SizedBox(height: 16),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 2.8,
-            ),
-            itemCount: widget.allSpecialities.length,
-            itemBuilder: (ctx, i) {
-              final t = widget.allSpecialities[i];
-              final sel = _type == t;
-              return GestureDetector(
-                onTap: () => setState(() => _type = t),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeOutCubic,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: sel ? const Color(0xFF0052D4) : Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
+          SizedBox(
+            height: 140,
+            child: ListView.builder(
+              physics: const BouncingScrollPhysics(),
+              scrollDirection: Axis.horizontal,
+              itemCount: widget.allSpecialities.length,
+              itemBuilder: (ctx, i) {
+                final t = widget.allSpecialities[i];
+                final sel = _type == t;
+                
+                IconData icon;
+                Color color;
+                switch (t) {
+                  case 'Droit familial': icon = Icons.family_restroom_rounded; color = const Color(0xFF0052D4); break;
+                  case 'Droit pénal': icon = Icons.gavel_rounded; color = const Color(0xFFEF4444); break;
+                  case 'Droit commercial': icon = Icons.business_center_rounded; color = const Color(0xFF0F766E); break;
+                  case 'Droit civil': icon = Icons.account_balance_rounded; color = const Color(0xFF7C3AED); break;
+                  case 'Droit du travail': icon = Icons.work_rounded; color = const Color(0xFFF59E0B); break;
+                  case 'Droit immobilier': icon = Icons.home_work_rounded; color = const Color(0xFF0369A1); break;
+                  case 'Droit administratif': icon = Icons.corporate_fare_rounded; color = const Color(0xFF059669); break;
+                  case 'Droit des sociétés': icon = Icons.domain_rounded; color = const Color(0xFF0052D4); break;
+                  case 'Droit fiscal': icon = Icons.request_quote_rounded; color = const Color(0xFF7C3AED); break;
+                  case 'Droit constitutionnel': icon = Icons.account_balance_rounded; color = const Color(0xFF0F766E); break;
+                  default: icon = Icons.balance_rounded; color = const Color(0xFF0052D4); break;
+                }
+
+                return GestureDetector(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    setState(() => _type = t);
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOutCubic,
+                    width: 130,
+                    margin: const EdgeInsets.only(right: 14, bottom: 8),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: sel ? const Color(0xFF0052D4) : Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
                         color: sel ? const Color(0xFF0052D4) : Colors.grey.shade200,
-                        width: 1.5),
-                    boxShadow: sel
-                        ? [BoxShadow(color: const Color(0xFF0052D4).withOpacity(0.25), blurRadius: 10, offset: const Offset(0, 4))]
-                        : [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2))],
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.balance_rounded,
-                          color: sel ? Colors.white : const Color(0xFF0052D4),
-                          size: 16),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(t,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: sel ? Colors.white : const Color(0xFF475569),
-                                fontSize: 12,
-                                fontWeight: sel ? FontWeight.w700 : FontWeight.w500)),
+                        width: 1.5,
                       ),
-                    ],
+                      boxShadow: sel
+                          ? [BoxShadow(color: const Color(0xFF0052D4).withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))]
+                          : [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: sel ? Colors.white.withOpacity(0.2) : color.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(icon, color: sel ? Colors.white : color, size: 24),
+                        ),
+                        const Spacer(),
+                        Text(
+                          t,
+                          maxLines: 2,
+                          style: TextStyle(
+                            color: sel ? Colors.white : const Color(0xFF1E293B),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            height: 1.2,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
           const SizedBox(height: 32),
           const Text('Votre question détaillée',
@@ -799,6 +827,7 @@ class _SharedConsultCardState extends State<_SharedConsultCard> {
         lawyerId: widget.currentUserId,
         lawyerName: lawyerProfile?.name ?? 'Avocat',
         answer: _answerCtrl.text.trim(),
+        userId: widget.consultation.userId,
       );
 
       if (!mounted) return;

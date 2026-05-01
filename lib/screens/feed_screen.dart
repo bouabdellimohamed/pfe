@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -21,28 +22,27 @@ class FeedHomeScreen extends StatefulWidget {
   State<FeedHomeScreen> createState() => _FeedHomeScreenState();
 }
 
-class _FeedHomeScreenState extends State<FeedHomeScreen>
-    with SingleTickerProviderStateMixin {
+class _FeedHomeScreenState extends State<FeedHomeScreen> with SingleTickerProviderStateMixin {
   int _tab = 0;
   final _auth = AuthService();
-  late AnimationController _fabCtrl;
 
   Future<void> _signOut() async {
     HapticFeedback.mediumImpact();
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Déconnexion'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Déconnexion', style: TextStyle(fontWeight: FontWeight.bold)),
         content: const Text('Voulez-vous vraiment vous déconnecter ?'),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Annuler')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler', style: TextStyle(color: Colors.grey))),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Déconnecter',
-                style: TextStyle(color: Colors.white)),
+            child: const Text('Déconnecter', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -56,20 +56,6 @@ class _FeedHomeScreenState extends State<FeedHomeScreen>
   }
 
   @override
-  void initState() {
-    super.initState();
-    _fabCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 250));
-    _fabCtrl.forward();
-  }
-
-  @override
-  void dispose() {
-    _fabCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
@@ -77,22 +63,16 @@ class _FeedHomeScreenState extends State<FeedHomeScreen>
       _HomeTab(
         onSearch: () => setState(() => _tab = 1),
         onConsultation: () => setState(() => _tab = 2),
-        onPostRequest: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const PostRequestScreen()),
-        ),
+        onPostRequest: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PostRequestScreen())),
         onChat: () => Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => Scaffold(
-              backgroundColor: AppColors.navy,
+              backgroundColor: const Color(0xFFF8FAFC),
               appBar: AppBar(
-                backgroundColor: AppColors.navyLight,
-                title: Text('Messages',
-                    style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700)),
+                backgroundColor: const Color(0xFF0052D4),
+                elevation: 0,
+                title: const Text('Messages', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                 leading: const BackButton(color: Colors.white),
               ),
               body: const ChatInboxScreen(isLawyer: false),
@@ -107,72 +87,73 @@ class _FeedHomeScreenState extends State<FeedHomeScreen>
     ];
 
     return Scaffold(
+      extendBody: true,
       body: IndexedStack(index: _tab, children: screens),
       bottomNavigationBar: Container(
+        margin: const EdgeInsets.only(left: 20, right: 20, bottom: 24),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 16,
-              offset: const Offset(0, -4),
+              color: const Color(0xFF0052D4).withOpacity(0.15),
+              blurRadius: 25,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
-        child: SafeArea(
-          top: false,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(30),
           child: BottomNavigationBar(
             currentIndex: _tab,
             onTap: (i) {
-              HapticFeedback.selectionClick();
+              HapticFeedback.lightImpact();
               setState(() => _tab = i);
             },
             elevation: 0,
-            backgroundColor: Colors.transparent,
+            backgroundColor: Colors.white,
             type: BottomNavigationBarType.fixed,
-            selectedItemColor: AppColors.primary,
-            unselectedItemColor: AppColors.grey400,
-            selectedLabelStyle: GoogleFonts.poppins(
-                fontSize: 11, fontWeight: FontWeight.w600),
-            unselectedLabelStyle: GoogleFonts.poppins(fontSize: 11),
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home_outlined),
-                activeIcon: Icon(Icons.home_rounded),
-                label: 'Accueil',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.search_outlined),
-                activeIcon: Icon(Icons.search_rounded),
-                label: 'Recherche',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.chat_bubble_outline_rounded),
-                activeIcon: Icon(Icons.chat_bubble_rounded),
-                label: 'Consultation',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.inbox_outlined),
-                activeIcon: Icon(Icons.inbox_rounded),
-                label: 'Mes demandes',
-              ),
+            selectedItemColor: const Color(0xFF0052D4),
+            unselectedItemColor: const Color(0xFF94A3B8),
+            showSelectedLabels: false,
+            showUnselectedLabels: false,
+            items: [
+              _buildNavItem(Icons.home_rounded, Icons.home_outlined, 0),
+              _buildNavItem(Icons.search_rounded, Icons.search_outlined, 1),
+              _buildNavItem(Icons.chat_bubble_rounded, Icons.chat_bubble_outline_rounded, 2),
+              _buildNavItem(Icons.folder_special_rounded, Icons.folder_open_rounded, 3),
             ],
           ),
         ),
       ),
     );
   }
+
+  BottomNavigationBarItem _buildNavItem(IconData activeIcon, IconData inactiveIcon, int index) {
+    final isSelected = _tab == index;
+    return BottomNavigationBarItem(
+      icon: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.all(isSelected ? 10 : 0),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF0052D4).withOpacity(0.1) : Colors.transparent,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(isSelected ? activeIcon : inactiveIcon, size: 26),
+      ),
+      label: '',
+    );
+  }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HOME TAB
-// ─────────────────────────────────────────────────────────────────────────────
 class _HomeTab extends StatefulWidget {
   final VoidCallback onSearch;
   final VoidCallback onConsultation;
   final VoidCallback onPostRequest;
   final VoidCallback onChat;
   final VoidCallback onSignOut;
+  
   const _HomeTab({
     required this.onSearch,
     required this.onConsultation,
@@ -191,150 +172,207 @@ class _HomeTabState extends State<_HomeTab> {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-    final firstName = user?.displayName?.split(' ').first ?? '';
+    final firstName = user?.displayName?.split(' ').first ?? 'Client';
+    final primaryColor = const Color(0xFF0052D4);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF8FAFC),
       body: RefreshIndicator(
-        color: AppColors.primary,
+        color: primaryColor,
         onRefresh: () async {
           setState(() {});
-          await Future.delayed(const Duration(milliseconds: 600));
+          await Future.delayed(const Duration(milliseconds: 800));
         },
         child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics()),
+          physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
           slivers: [
-            // ── App Bar ───────────────────────────────────────────────────
             SliverAppBar(
-              floating: true,
-              snap: true,
-              backgroundColor: AppColors.surface,
+              expandedHeight: 140.0,
+              floating: false,
+              pinned: true,
               elevation: 0,
-              automaticallyImplyLeading: false,
-              title: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Bonjour 👋',
-                      style: GoogleFonts.poppins(
-                          fontSize: 13, color: AppColors.textSecondary)),
-                  Text(
-                    firstName.isNotEmpty ? firstName : 'Bienvenue !',
-                    style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary),
+              backgroundColor: primaryColor,
+              flexibleSpace: FlexibleSpaceBar(
+                background: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF0052D4), Color(0xFF4364F7), Color(0xFF6FB1FC)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
                   ),
-                ],
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        right: -30,
+                        top: -10,
+                        child: Icon(Icons.gavel_rounded, size: 160, color: Colors.white.withOpacity(0.1)),
+                      ),
+                    ],
+                  ),
+                ),
+                titlePadding: const EdgeInsets.only(left: 24, bottom: 16),
+                title: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Bonjour 👋', style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12, fontWeight: FontWeight.w500)),
+                    Text(
+                      firstName,
+                      style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+                    ),
+                  ],
+                ),
               ),
               actions: [
-                // Notifications
                 StreamBuilder<List<NotificationModel>>(
-                  stream: _notificationService
-                      .getUnreadNotifications(user?.uid ?? ''),
+                  stream: _notificationService.getUnreadNotifications(user?.uid ?? ''),
                   builder: (context, snapshot) {
                     final count = snapshot.data?.length ?? 0;
                     return IconButton(
-                      tooltip: 'Notifications',
                       icon: Badge(
                         isLabelVisible: count > 0,
-                        label: Text('$count',
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 10)),
-                        child: const Icon(Icons.notifications_outlined,
-                            color: AppColors.primary),
+                        label: Text('$count', style: const TextStyle(color: Colors.white, fontSize: 10)),
+                        backgroundColor: const Color(0xFFEF4444),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
+                          child: const Icon(Icons.notifications_rounded, color: Colors.white, size: 20),
+                        ),
                       ),
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const NotificationsScreen()),
-                      ),
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsScreen())),
                     );
                   },
                 ),
-                // Profile menu
                 PopupMenuButton(
-                  icon: CircleAvatar(
-                    radius: 18,
-                    backgroundColor: AppColors.primarySurface,
-                    child: Text(
-                      (user?.displayName?.isNotEmpty == true)
-                          ? user!.displayName![0].toUpperCase()
-                          : 'U',
-                      style: GoogleFonts.poppins(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14),
+                  icon: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                    child: CircleAvatar(
+                      radius: 16,
+                      backgroundColor: primaryColor.withOpacity(0.1),
+                      child: Text(
+                        firstName[0].toUpperCase(),
+                        style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
                     ),
                   ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   position: PopupMenuPosition.under,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
                   itemBuilder: (ctx) => [
                     PopupMenuItem(
-                      onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) =>
-                                  const UserProfileManagementScreen())),
-                      child: const Row(children: [
-                        Icon(Icons.person_outline, size: 18),
-                        SizedBox(width: 12),
-                        Text('Mon profil'),
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UserProfileManagementScreen())),
+                      child: Row(children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(color: primaryColor.withOpacity(0.1), shape: BoxShape.circle),
+                          child: Icon(Icons.person_rounded, size: 18, color: primaryColor),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text('Mon profil', style: TextStyle(fontWeight: FontWeight.w600)),
                       ]),
                     ),
                     PopupMenuItem(
                       onTap: widget.onSignOut,
-                      child: const Row(children: [
-                        Icon(Icons.logout_rounded,
-                            size: 18, color: AppColors.error),
-                        SizedBox(width: 12),
-                        Text('Déconnexion',
-                            style: TextStyle(color: AppColors.error)),
+                      child: Row(children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), shape: BoxShape.circle),
+                          child: const Icon(Icons.logout_rounded, size: 18, color: Colors.red),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text('Déconnexion', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
                       ]),
                     ),
                   ],
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 12),
               ],
             ),
-
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  // ── Hero Banner ───────────────────────────────────────────
-                  _HeroBanner(onTap: widget.onSearch),
-                  const SizedBox(height: 28),
-
-                  // ── Quick Actions ─────────────────────────────────────────
-                  Text('Actions rapides',
-                      style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary)),
-                  const SizedBox(height: 14),
-                  _QuickActionsGrid(
-                    onSearch: widget.onSearch,
-                    onConsultation: widget.onConsultation,
-                    onPostRequest: widget.onPostRequest,
-                    onChat: widget.onChat,
+            
+            SliverToBoxAdapter(
+              child: Transform.translate(
+                offset: const Offset(0, -20),
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                   ),
-                  const SizedBox(height: 28),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 24),
+                      
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: _HeroBanner(onTap: widget.onSearch),
+                      ),
+                      const SizedBox(height: 32),
 
-                  // ── AI Assistant Banner ───────────────────────────────────
-                  _AIBanner(),
-                  const SizedBox(height: 28),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 4,
+                              height: 18,
+                              decoration: BoxDecoration(color: primaryColor, borderRadius: BorderRadius.circular(2)),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('Actions rapides', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1E293B))),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: _QuickActionsGrid(
+                          onSearch: widget.onSearch,
+                          onConsultation: widget.onConsultation,
+                          onPostRequest: widget.onPostRequest,
+                          onChat: widget.onChat,
+                        ),
+                      ),
+                      const SizedBox(height: 32),
 
-                  // ── Legal Domains ─────────────────────────────────────────
-                  Text('Domaines juridiques',
-                      style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary)),
-                  const SizedBox(height: 12),
-                  _LegalDomainsGrid(),
-                ]),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: _AIBanner(),
+                      ),
+                      const SizedBox(height: 32),
+
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 4,
+                              height: 18,
+                              decoration: BoxDecoration(color: const Color(0xFF0F766E), borderRadius: BorderRadius.circular(2)),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('Domaines juridiques', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1E293B))),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        height: 130,
+                        child: ListView.builder(
+                          physics: const BouncingScrollPhysics(),
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          itemCount: _LegalDomainsList.domains.length,
+                          itemBuilder: (context, index) {
+                            final domain = _LegalDomainsList.domains[index];
+                            return _DomainCard(domain: domain);
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 100), // padding for bottom nav
+                    ],
+                  ),
+                ),
               ),
             ),
           ],
@@ -344,9 +382,6 @@ class _HomeTabState extends State<_HomeTab> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HERO BANNER
-// ─────────────────────────────────────────────────────────────────────────────
 class _HeroBanner extends StatelessWidget {
   final VoidCallback onTap;
   const _HeroBanner({required this.onTap});
@@ -357,96 +392,91 @@ class _HeroBanner extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF1A56DB), Color(0xFF3B82F6)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(20),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 6),
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text('⚡  Recherche rapide',
-                        style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600)),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -20,
+                bottom: -20,
+                child: Container(
+                  width: 140,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0052D4).withOpacity(0.05),
+                    shape: BoxShape.circle,
                   ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Trouvez votre avocat idéal',
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontSize: 19,
-                      fontWeight: FontWeight.w800,
-                      height: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Par spécialité, wilaya et score de performance',
-                    style: GoogleFonts.poppins(
-                      color: Colors.white.withOpacity(0.85),
-                      fontSize: 12,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 9),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      'Rechercher maintenant',
-                      style: GoogleFonts.poppins(
-                        color: AppColors.primary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE0E7FF),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.search_rounded, size: 14, color: Color(0xFF0052D4)),
+                          SizedBox(width: 6),
+                          Text('Recherche directe', style: TextStyle(color: Color(0xFF0052D4), fontSize: 11, fontWeight: FontWeight.bold)),
+                        ],
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Trouvez votre\navocat idéal',
+                      style: TextStyle(color: Color(0xFF1E293B), fontSize: 24, fontWeight: FontWeight.w900, height: 1.2),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Recherchez par spécialité, région et\nconsultez les scores de performance.',
+                      style: TextStyle(color: Color(0xFF64748B), fontSize: 13, height: 1.4),
+                    ),
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0052D4),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [BoxShadow(color: const Color(0xFF0052D4).withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))],
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('Commencer la recherche', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                          SizedBox(width: 8),
+                          Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 16),
-            Opacity(
-              opacity: 0.15,
-              child: const Icon(Icons.balance_rounded,
-                  size: 90, color: Colors.white),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// QUICK ACTIONS GRID
-// ─────────────────────────────────────────────────────────────────────────────
 class _QuickActionsGrid extends StatelessWidget {
   final VoidCallback onSearch;
   final VoidCallback onConsultation;
@@ -463,25 +493,15 @@ class _QuickActionsGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final actions = [
-      _Action(Icons.search_rounded, 'Trouver\nun avocat',
-          AppColors.primary, onSearch),
-      _Action(Icons.chat_bubble_outline_rounded, 'Consultation\njuridique',
-          const Color(0xFF0F766E), onConsultation),
-      _Action(Icons.post_add_rounded, 'Publier\nune demande',
-          const Color(0xFFD97706), onPostRequest),
-      _Action(Icons.forum_outlined, 'Mes\nmessages',
-          const Color(0xFF7C3AED), onChat),
+      _Action(Icons.manage_search_rounded, 'Recherche', const Color(0xFF0052D4), const Color(0xFFEFF6FF), onSearch),
+      _Action(Icons.gavel_rounded, 'Consultation', const Color(0xFF0F766E), const Color(0xFFF0FDFA), onConsultation),
+      _Action(Icons.campaign_rounded, 'Demande', const Color(0xFFF59E0B), const Color(0xFFFEF3C7), onPostRequest),
+      _Action(Icons.question_answer_rounded, 'Messages', const Color(0xFF7C3AED), const Color(0xFFF3E8FF), onChat),
     ];
 
-    return GridView.count(
-      crossAxisCount: 4,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 10,
-      childAspectRatio: 0.75,
-      children: actions
-          .map((a) => _ActionTile(action: a))
-          .toList(),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: actions.map((a) => _ActionTile(action: a)).toList(),
     );
   }
 }
@@ -490,145 +510,102 @@ class _Action {
   final IconData icon;
   final String label;
   final Color color;
+  final Color bgColor;
   final VoidCallback onTap;
-  const _Action(this.icon, this.label, this.color, this.onTap);
+  const _Action(this.icon, this.label, this.color, this.bgColor, this.onTap);
 }
 
-class _ActionTile extends StatefulWidget {
+class _ActionTile extends StatelessWidget {
   final _Action action;
   const _ActionTile({required this.action});
 
   @override
-  State<_ActionTile> createState() => _ActionTileState();
-}
-
-class _ActionTileState extends State<_ActionTile>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-  late Animation<double> _scale;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 120));
-    _scale = Tween<double>(begin: 1.0, end: 0.92).animate(
-        CurvedAnimation(parent: _ctrl, curve: Curves.easeIn));
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: (_) => _ctrl.forward(),
-      onTapUp: (_) {
-        _ctrl.reverse();
-        HapticFeedback.selectionClick();
-        widget.action.onTap();
+      onTap: () {
+        HapticFeedback.lightImpact();
+        action.onTap();
       },
-      onTapCancel: () => _ctrl.reverse(),
-      child: AnimatedBuilder(
-        animation: _scale,
-        builder: (_, child) =>
-            Transform.scale(scale: _scale.value, child: child),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: widget.action.color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                    color: widget.action.color.withOpacity(0.2), width: 1),
-              ),
-              child: Icon(widget.action.icon,
-                  color: widget.action.color, size: 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 65,
+            height: 65,
+            decoration: BoxDecoration(
+              color: action.bgColor,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(color: action.color.withOpacity(0.15), blurRadius: 10, offset: const Offset(0, 4)),
+              ],
             ),
-            const SizedBox(height: 6),
-            Text(
-              widget.action.label,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
-                color: AppColors.textPrimary,
-                fontSize: 10.5,
-                fontWeight: FontWeight.w600,
-                height: 1.3,
-              ),
-            ),
-          ],
-        ),
+            child: Icon(action.icon, color: action.color, size: 30),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            action.label,
+            style: const TextStyle(color: Color(0xFF334155), fontSize: 11, fontWeight: FontWeight.w700),
+          ),
+        ],
       ),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// AI ASSISTANT BANNER
-// ─────────────────────────────────────────────────────────────────────────────
 class _AIBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const AIAssistantScreen()),
-      ),
+      onTap: () {
+        HapticFeedback.lightImpact();
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const AIAssistantScreen()));
+      },
       child: Container(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFF0F766E), Color(0xFF14B8A6)],
+            colors: [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(24),
           boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF0F766E).withOpacity(0.25),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            ),
+            BoxShadow(color: const Color(0xFF7C3AED).withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 8)),
           ],
         ),
         child: Row(
           children: [
             Container(
-              width: 50,
-              height: 50,
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white.withOpacity(0.3)),
               ),
-              child: const Icon(Icons.auto_awesome_rounded,
-                  color: Colors.white, size: 26),
+              child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 32),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Assistant IA Juridique',
-                      style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700)),
+                  const Text(
+                    'Assistant IA Juridique',
+                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
                   Text(
-                    'Décrivez votre situation, l\'IA identifie votre besoin',
-                    style: GoogleFonts.poppins(
-                        color: Colors.white.withOpacity(0.85), fontSize: 12),
+                    'Décrivez votre cas, laissez l\'IA vous guider.',
+                    style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12, height: 1.3),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded,
-                color: Colors.white, size: 16),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+              child: const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFF6D28D9), size: 14),
+            ),
           ],
         ),
       ),
@@ -636,75 +613,62 @@ class _AIBanner extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// LEGAL DOMAINS
-// ─────────────────────────────────────────────────────────────────────────────
-class _LegalDomainsGrid extends StatelessWidget {
-  static const _domains = [
-    _Domain('Droit familial', Icons.family_restroom_rounded, Color(0xFF1A56DB)),
-    _Domain('Droit pénal', Icons.gavel_rounded, Color(0xFFDC2626)),
-    _Domain('Droit commercial', Icons.business_center_rounded, Color(0xFF0F766E)),
-    _Domain('Droit civil', Icons.account_balance_rounded, Color(0xFF7C3AED)),
-    _Domain('Droit du travail', Icons.work_outline_rounded, Color(0xFFD97706)),
-    _Domain('Droit immobilier', Icons.home_work_rounded, Color(0xFF0369A1)),
-    _Domain('Droit administratif', Icons.corporate_fare_rounded, Color(0xFF059669)),
-    _Domain('Droit fiscal', Icons.receipt_long_rounded, Color(0xFFB45309)),
-    _Domain('Propriété Intellectuelle', Icons.lightbulb_outline_rounded, Color(0xFF7C3AED)),
-    _Domain('Droit des sociétés', Icons.handshake_outlined, Color(0xFF0F766E)),
-  ];
+class _DomainCard extends StatelessWidget {
+  final _Domain domain;
+  const _DomainCard({required this.domain});
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        childAspectRatio: 3.2,
-      ),
-      itemCount: _domains.length,
-      itemBuilder: (_, i) {
-        final d = _domains[i];
-        return InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () {
-            HapticFeedback.selectionClick();
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) =>
-                      DirectSearchScreen(preselectedSpeciality: d.name)),
-            );
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: d.color.withOpacity(0.06),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: d.color.withOpacity(0.18)),
-            ),
-            child: Row(
-              children: [
-                Icon(d.icon, color: d.color, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(d.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.poppins(
-                          color: AppColors.textPrimary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600)),
-                ),
-              ],
-            ),
-          ),
-        );
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        Navigator.push(context, MaterialPageRoute(builder: (_) => DirectSearchScreen(preselectedSpeciality: domain.name)));
       },
+      child: Container(
+        width: 140,
+        margin: const EdgeInsets.only(right: 16, bottom: 10),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: domain.color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+              child: Icon(domain.icon, color: domain.color, size: 24),
+            ),
+            const Spacer(),
+            Text(
+              domain.name,
+              maxLines: 2,
+              style: const TextStyle(color: Color(0xFF1E293B), fontSize: 13, fontWeight: FontWeight.w700, height: 1.2),
+            ),
+          ],
+        ),
+      ),
     );
   }
+}
+
+class _LegalDomainsList {
+  static const domains = [
+    _Domain('Droit familial', Icons.family_restroom_rounded, Color(0xFF0052D4)),
+    _Domain('Droit pénal', Icons.gavel_rounded, Color(0xFFEF4444)),
+    _Domain('Droit commercial', Icons.business_center_rounded, Color(0xFF0F766E)),
+    _Domain('Droit civil', Icons.account_balance_rounded, Color(0xFF7C3AED)),
+    _Domain('Droit du travail', Icons.work_rounded, Color(0xFFF59E0B)),
+    _Domain('Droit immobilier', Icons.home_work_rounded, Color(0xFF0369A1)),
+    _Domain('Droit administratif', Icons.corporate_fare_rounded, Color(0xFF059669)),
+    _Domain('Propriété Intellectuelle', Icons.lightbulb_rounded, Color(0xFF7C3AED)),
+  ];
 }
 
 class _Domain {

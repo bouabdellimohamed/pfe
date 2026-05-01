@@ -73,11 +73,16 @@ class NotificationService {
         .collection('notifications')
         .where('userId', isEqualTo: userId)
         .where('isRead', isEqualTo: false)
-        .orderBy('timestamp', descending: true)
+        // Removed server-side orderBy to prevent flickering with null server timestamps
         .snapshots()
-        .map((snapshot) => snapshot.docs
+        .map((snapshot) {
+          final list = snapshot.docs
             .map((doc) => NotificationModel.fromMap(doc.data(), doc.id))
-            .toList());
+            .toList();
+          // Sort in memory instead
+          list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          return list;
+        });
   }
 
   // الحصول على جميع الإشعارات
@@ -85,11 +90,16 @@ class NotificationService {
     return _firestore
         .collection('notifications')
         .where('userId', isEqualTo: userId)
-        .orderBy('timestamp', descending: true)
+        // Removed server-side orderBy to handle null server timestamps correctly
         .snapshots()
-        .map((snapshot) => snapshot.docs
+        .map((snapshot) {
+          final list = snapshot.docs
             .map((doc) => NotificationModel.fromMap(doc.data(), doc.id))
-            .toList());
+            .toList();
+          // Sort in memory
+          list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          return list;
+        });
   }
 
   // وضع علامة على الإشعار كمقروء

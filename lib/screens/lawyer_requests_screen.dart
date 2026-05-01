@@ -252,7 +252,13 @@ class _RequestCardState extends State<_RequestCard> {
   Future<void> _openChat() async {
     setState(() => _openingChat = true);
     try {
-      await widget.auth.respondToRequest(widget.r.id, widget.uid);
+      final profile = await widget.auth.getLawyerProfile(widget.uid);
+      await widget.auth.respondToRequest(
+        widget.r.id, 
+        widget.uid,
+        userId: widget.r.userId,
+        lawyerName: profile?.name,
+      );
       final convId = await widget.auth.getOrCreateConversationIdForRequest(
         requestId: widget.r.id,
         userId: widget.r.userId,
@@ -339,6 +345,7 @@ class _ConsultCardState extends State<_ConsultCard> {
         lawyerId: widget.lawyerId,
         lawyerName: profile?.name ?? 'Maître',
         answer: _answerCtrl.text.trim(),
+        userId: widget.c.userId,
       );
       if (mounted) {
         setState(() => _showReply = false);

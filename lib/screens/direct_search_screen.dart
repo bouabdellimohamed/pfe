@@ -49,17 +49,17 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> with SingleTick
   final Color greyText = const Color(0xFF64748B);
 
   final List<Map<String, dynamic>> _specialities = [
-    {'name': 'Généraliste', 'icon': Icons.account_balance_rounded},
-    {'name': 'Droit familial', 'icon': Icons.family_restroom_rounded},
-    {'name': 'Droit pénal', 'icon': Icons.gavel_rounded},
-    {'name': 'Droit commercial', 'icon': Icons.handshake_rounded},
-    {'name': 'Droit civil', 'icon': Icons.groups_rounded},
-    {'name': 'Droit immobilier', 'icon': Icons.home_work_rounded},
-    {'name': 'Droit administratif', 'icon': Icons.account_balance_wallet_rounded},
-    {'name': 'Droit du travail', 'icon': Icons.work_rounded},
-    {'name': 'Droit des sociétés', 'icon': Icons.business_center_rounded},
-    {'name': 'Droit fiscal', 'icon': Icons.request_quote_rounded},
-    {'name': 'Propriété Intellectuelle', 'icon': Icons.lightbulb_rounded},
+    {'name': 'Généraliste', 'icon': Icons.account_balance_rounded, 'color': const Color(0xFF64748B)},
+    {'name': 'Droit familial', 'icon': Icons.family_restroom_rounded, 'color': const Color(0xFF0052D4)},
+    {'name': 'Droit pénal', 'icon': Icons.gavel_rounded, 'color': const Color(0xFFEF4444)},
+    {'name': 'Droit commercial', 'icon': Icons.handshake_rounded, 'color': const Color(0xFF0F766E)},
+    {'name': 'Droit civil', 'icon': Icons.groups_rounded, 'color': const Color(0xFF7C3AED)},
+    {'name': 'Droit immobilier', 'icon': Icons.home_work_rounded, 'color': const Color(0xFF0369A1)},
+    {'name': 'Droit administratif', 'icon': Icons.account_balance_wallet_rounded, 'color': const Color(0xFF059669)},
+    {'name': 'Droit du travail', 'icon': Icons.work_rounded, 'color': const Color(0xFFF59E0B)},
+    {'name': 'Droit des sociétés', 'icon': Icons.business_center_rounded, 'color': const Color(0xFF0052D4)},
+    {'name': 'Droit fiscal', 'icon': Icons.request_quote_rounded, 'color': const Color(0xFF7C3AED)},
+    {'name': 'Propriété Intellectuelle', 'icon': Icons.lightbulb_rounded, 'color': const Color(0xFF7C3AED)},
   ];
 
   final Map<String, List<String>> _locations = {
@@ -317,11 +317,12 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> with SingleTick
         crossAxisCount: 2,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        childAspectRatio: 2.1,
+        childAspectRatio: 1.6,
       ),
       itemBuilder: (context, index) {
         final speciality = _specialities[index];
         final isSelected = _selectedSpeciality == speciality['name'];
+        final color = speciality['color'] as Color;
 
         return GestureDetector(
           onTap: () {
@@ -330,38 +331,47 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> with SingleTick
           },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               color: isSelected ? primaryColor : Colors.white,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: isSelected ? primaryColor : Colors.grey.shade200,
-                width: isSelected ? 2 : 1.5,
+                width: 1.5,
               ),
               boxShadow: [
                 if (isSelected)
-                  BoxShadow(color: primaryColor.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4)),
+                  BoxShadow(color: primaryColor.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))
+                else
+                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
               ],
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  speciality['icon'],
-                  color: isSelected ? Colors.white : primaryColor.withOpacity(0.6),
-                  size: 18,
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isSelected ? Colors.white.withOpacity(0.2) : color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    speciality['icon'],
+                    color: isSelected ? Colors.white : color,
+                    size: 18,
+                  ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    speciality['name'],
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : darkText,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                      fontSize: 12,
-                    ),
+                const Spacer(),
+                Text(
+                  speciality['name'],
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : const Color(0xFF1E293B),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                    height: 1.1,
                   ),
                 ),
               ],

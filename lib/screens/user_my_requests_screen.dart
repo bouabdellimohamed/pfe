@@ -177,7 +177,7 @@ class UserMyRequestsScreen extends StatelessWidget {
                       ) ?? false;
                     },
                     onDismissed: (_) {
-                      FirebaseFirestore.instance.collection('publications').doc(list[i].id).delete();
+                      FirebaseFirestore.instance.collection('requests').doc(list[i].id).delete();
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('"${list[i].title}" supprimée', style: const TextStyle(fontWeight: FontWeight.bold)),

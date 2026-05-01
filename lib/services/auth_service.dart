@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../models/lawyer_model.dart';
 import '../models/user_model.dart';
 import '../models/consultation_model.dart';
+import 'notification_service.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -326,6 +327,7 @@ class AuthService {
     required String lawyerId,
     required String lawyerName,
     required String answer,
+    required String userId, // Added for notifications
   }) async {
     await _firestore.collection('consultations').doc(consultationId).update({
       'answer': answer,
@@ -334,6 +336,20 @@ class AuthService {
       'status': 'answered',
       'answeredAt': FieldValue.serverTimestamp(),
     });
+    
+    // Send notification to the user
+    try {
+      final notifService = NotificationService();
+      await notifService.addNotification(
+        userId: userId,
+        title: 'Réponse à votre consultation',
+        message: 'Maître $lawyerName a répondu à votre consultation.',
+        data: {'type': 'consultation', 'consultationId': consultationId},
+      );
+    } catch (e) {
+      print('Erreur notification: $e');
+    }
+
     // ✅ زيادة activityPoints عند الرد على استشارة (+5)
     await _updateLawyerActivity(lawyerId, activityDelta: 5);
   }
@@ -397,10 +413,26 @@ class AuthService {
     });
   }
 
-  Future<void> respondToRequest(String requestId, String lawyerId) async {
+  Future<void> respondToRequest(String requestId, String lawyerId, {String? userId, String? lawyerName}) async {
     await _firestore.collection('requests').doc(requestId).update({
       'respondedLawyerIds': FieldValue.arrayUnion([lawyerId]),
     });
+    
+    // Send notification
+    if (userId != null) {
+      try {
+        final notifService = NotificationService();
+        await notifService.addNotification(
+          userId: userId,
+          title: 'Nouvelle réponse à votre demande',
+          message: 'Maître ${lawyerName ?? ''} a répondu à votre demande. Consultez vos messages.',
+          data: {'type': 'request', 'requestId': requestId},
+        );
+      } catch (e) {
+        print('Erreur notification: $e');
+      }
+    }
+
     // ✅ زيادة activityPoints عند قبول طلب (+3)
     await _updateLawyerActivity(lawyerId, activityDelta: 3);
   }
