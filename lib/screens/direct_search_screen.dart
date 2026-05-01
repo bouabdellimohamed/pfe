@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/services.dart';
 import '../models/lawyer_model.dart';
 import '../widgets/profile_avatar.dart';
@@ -221,12 +222,12 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> with SingleTick
                               color: Colors.white.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Text('RECHERCHE DIRECTE', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                            child: Text('direct_search'.tr().toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'Trouvez votre avocat',
-                            style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+                          Text(
+                            'find_your_lawyer'.tr(),
+                            style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: -0.5),
                           ),
                         ],
                       ),
@@ -249,18 +250,18 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> with SingleTick
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildSectionHeader("1", "Spécialité juridique", "Quelle est la nature de votre affaire ?"),
+                      _buildSectionHeader("1", "legal_specialty".tr(), "nature_of_case".tr()),
                       const SizedBox(height: 20),
                       _buildSpecialityGrid(),
                       
                       const SizedBox(height: 40),
-                      _buildSectionHeader("2", "Localisation", "Où cherchez-vous votre avocat ?"),
+                      _buildSectionHeader("2", "location".tr(), "where_search_lawyer".tr()),
                       const SizedBox(height: 20),
                       _buildLocationForm(),
 
                       if (_selectedSpeciality != null && _selectedWilaya != null) ...[
                         const SizedBox(height: 40),
-                        _buildSectionHeader("3", "Recommandations", "Avocats correspondant à vos critères"),
+                        _buildSectionHeader("3", "recommendations".tr(), "lawyers_match_criteria".tr()),
                         const SizedBox(height: 20),
                         _buildRecommendationsSection(),
                       ],
@@ -364,7 +365,7 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> with SingleTick
                 ),
                 const Spacer(),
                 Text(
-                  speciality['name'],
+                  (speciality['name'] as String).tr(),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -396,7 +397,7 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> with SingleTick
         children: [
           _buildDropdownField(
             value: _selectedWilaya,
-            hint: 'Sélectionnez une Wilaya',
+            hint: 'select_wilaya'.tr(),
             icon: Icons.map_rounded,
             items: _locations.keys.toList(),
             onChanged: (value) {
@@ -411,7 +412,7 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> with SingleTick
             const SizedBox(height: 16),
             _buildDropdownField(
               value: _selectedCommune,
-              hint: 'Commune (optionnel)',
+              hint: 'commune_optional'.tr(),
               icon: Icons.location_city_rounded,
               items: _locations[_selectedWilaya]!,
               onChanged: (value) => setState(() => _selectedCommune = value),
@@ -449,15 +450,9 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> with SingleTick
             ],
           ),
           items: items.map((item) {
-            return DropdownMenuItem(
+            return DropdownMenuItem<String>(
               value: item,
-              child: Row(
-                children: [
-                  Icon(icon, color: primaryColor, size: 20),
-                  const SizedBox(width: 12),
-                  Text(item, style: TextStyle(color: darkText, fontSize: 14, fontWeight: FontWeight.w600)),
-                ],
-              ),
+              child: Text(item.tr(), style: TextStyle(color: darkText, fontSize: 14)),
             );
           }).toList(),
           onChanged: onChanged,
@@ -496,10 +491,10 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> with SingleTick
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Aucun résultat", style: TextStyle(fontWeight: FontWeight.w700, color: darkText, fontSize: 15)),
+                  Text("no_result".tr(), style: TextStyle(fontWeight: FontWeight.w700, color: darkText, fontSize: 15)),
                   const SizedBox(height: 4),
                   Text(
-                    "Aucun avocat enregistré pour $_selectedSpeciality à $_selectedWilaya.",
+                    "no_lawyer_found".tr(namedArgs: {'speciality': _selectedSpeciality!.tr(), 'wilaya': _selectedWilaya!}),
                     style: TextStyle(color: greyText, fontSize: 13, height: 1.4),
                   ),
                 ],
@@ -574,10 +569,24 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> with SingleTick
                     children: [
                       Icon(Icons.location_on_rounded, size: 12, color: greyText),
                       const SizedBox(width: 4),
-                      Text(lawyer.wilaya ?? '', style: TextStyle(color: greyText, fontSize: 12, fontWeight: FontWeight.w500)),
+                      Flexible(
+                        child: Text(
+                          lawyer.wilaya ?? '',
+                          style: TextStyle(color: greyText, fontSize: 12, fontWeight: FontWeight.w500),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                       if ((lawyer.experience ?? 0) > 0) ...[
                         Text(" • ", style: TextStyle(color: greyText, fontSize: 12)),
-                        Text("${lawyer.experience} ans exp", style: TextStyle(color: greyText, fontSize: 12, fontWeight: FontWeight.w500)),
+                        Flexible(
+                          child: Text(
+                            "years_exp".tr(namedArgs: {'count': lawyer.experience.toString()}),
+                            style: TextStyle(color: greyText, fontSize: 12, fontWeight: FontWeight.w500),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       ],
                     ],
                   ),
@@ -592,7 +601,7 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> with SingleTick
                             const Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 14),
                             const SizedBox(width: 4),
                             Text(
-                              lawyer.rating > 0 ? lawyer.rating.toStringAsFixed(1) : "Nouveau",
+                              lawyer.rating > 0 ? lawyer.rating.toStringAsFixed(1) : "new".tr(),
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFFD97706)),
                             ),
                           ],
@@ -604,7 +613,7 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> with SingleTick
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(color: primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
                           child: Text(
-                            "${lawyer.finalScore.toStringAsFixed(0)} pts",
+                            "pts".tr(namedArgs: {'count': lawyer.finalScore.toStringAsFixed(0)}),
                             style: TextStyle(color: primaryColor, fontSize: 11, fontWeight: FontWeight.w700),
                           ),
                         ),
@@ -644,10 +653,10 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> with SingleTick
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           elevation: 0,
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text("VOIR TOUS LES RÉSULTATS", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, letterSpacing: 0.5)),
+            Text("see_all_results".tr(), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, letterSpacing: 0.5)),
             SizedBox(width: 12),
             Icon(Icons.search_rounded, size: 20),
           ],

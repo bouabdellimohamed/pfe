@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/auth_service.dart';
@@ -131,15 +132,15 @@ class _LawyerEditProfileScreenState extends State<LawyerEditProfileScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            const Text('Photo de profil',
-                style: TextStyle(
+            Text('photo_profile_title'.tr(),
+                style: const TextStyle(
                     color: _textPrimary,
                     fontSize: 18,
                     fontWeight: FontWeight.w700)),
             const SizedBox(height: 20),
             _photoOption(
               icon: Icons.photo_library_rounded,
-              label: 'Choisir depuis la galerie',
+              label: 'choose_from_gallery'.tr(),
               color: _gold,
               onTap: () => Navigator.pop(ctx, 'pick'),
             ),
@@ -147,7 +148,7 @@ class _LawyerEditProfileScreenState extends State<LawyerEditProfileScreen> {
               const SizedBox(height: 10),
               _photoOption(
                 icon: Icons.delete_outline_rounded,
-                label: 'Supprimer la photo',
+                label: 'remove_photo'.tr(),
                 color: const Color(0xFFEF5350),
                 onTap: () => Navigator.pop(ctx, 'remove'),
               ),
@@ -155,7 +156,7 @@ class _LawyerEditProfileScreenState extends State<LawyerEditProfileScreen> {
             const SizedBox(height: 10),
             _photoOption(
               icon: Icons.close_rounded,
-              label: 'Annuler',
+              label: 'cancel'.tr(),
               color: _textSecondary,
               onTap: () => Navigator.pop(ctx),
             ),
@@ -213,7 +214,7 @@ class _LawyerEditProfileScreenState extends State<LawyerEditProfileScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selected.isEmpty) {
-      setState(() => _error = 'Sélectionnez au moins une spécialité');
+      setState(() => _error = 'select_at_least_one_spec'.tr());
       return;
     }
     setState(() {
@@ -245,13 +246,13 @@ class _LawyerEditProfileScreenState extends State<LawyerEditProfileScreen> {
       await _auth.updateLawyerProfile(uid, updates);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Profil mis à jour !'),
-            backgroundColor: Color(0xFF2E7D32)));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('profile_updated'.tr()),
+            backgroundColor: const Color(0xFF2E7D32)));
         Navigator.pop(context, true);
       }
     } catch (e) {
-      setState(() => _error = 'Erreur: $e');
+      setState(() => _error = 'error'.tr() + ': $e');
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -282,8 +283,8 @@ class _LawyerEditProfileScreenState extends State<LawyerEditProfileScreen> {
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Modifier le profil',
-            style: TextStyle(
+        title: Text('edit_profile_title'.tr(),
+            style: const TextStyle(
                 color: _textPrimary,
                 fontSize: 17,
                 fontWeight: FontWeight.w700)),
@@ -338,8 +339,8 @@ class _LawyerEditProfileScreenState extends State<LawyerEditProfileScreen> {
                 onPressed: _changeProfileImage,
                 child: Text(
                   _profileImageBase64 != null
-                      ? 'Changer la photo'
-                      : 'Ajouter une photo (optionnel)',
+                      ? 'change_photo'.tr()
+                      : 'add_photo_optional'.tr(),
                   style: const TextStyle(
                       color: _gold, fontSize: 13, fontWeight: FontWeight.w500),
                 ),
@@ -347,17 +348,17 @@ class _LawyerEditProfileScreenState extends State<LawyerEditProfileScreen> {
             ),
             const SizedBox(height: 16),
 
-            _sectionLabel('Informations personnelles'),
+            _sectionLabel('personal_info_section'.tr()),
             const SizedBox(height: 12),
             _card(children: [
               _field(
-                  label: 'Nom complet *',
+                  label: 'full_name_label'.tr(),
                   ctrl: _nameCtrl,
                   icon: Icons.person_outline_rounded,
-                  validator: (v) => v!.isEmpty ? 'Champ requis' : null),
+                  validator: (v) => v!.isEmpty ? 'required_field'.tr() : null),
               const SizedBox(height: 14),
               _field(
-                  label: 'Téléphone',
+                  label: 'phone_label'.tr(),
                   ctrl: _phoneCtrl,
                   icon: Icons.phone_outlined,
                   keyboard: TextInputType.phone),
@@ -365,16 +366,16 @@ class _LawyerEditProfileScreenState extends State<LawyerEditProfileScreen> {
 
             const SizedBox(height: 24),
 
-            _sectionLabel('Profil professionnel'),
+            _sectionLabel('pro_profile_section'.tr()),
             const SizedBox(height: 12),
             _card(children: [
               _field(
-                  label: "Années d'expérience",
+                  label: "experience_label".tr(),
                   ctrl: _expCtrl,
                   icon: Icons.work_outline_rounded,
                   keyboard: TextInputType.number),
               const SizedBox(height: 16),
-              Text('Spécialités *',
+              Text('specialities_label'.tr(),
                   style: const TextStyle(
                       color: _textSecondary,
                       fontSize: 13,
@@ -386,18 +387,18 @@ class _LawyerEditProfileScreenState extends State<LawyerEditProfileScreen> {
             const SizedBox(height: 24),
 
             // ✅ إضافة حقل الموقع الجغرافي
-            _sectionLabel('الموقع الجغرافي'),
+            _sectionLabel('geo_location_section'.tr()),
             const SizedBox(height: 12),
             _card(children: [
               _field(
-                  label: 'رابط موقع المكتب (Google Maps / GPS)',
+                  label: 'office_location_url_label'.tr(),
                   ctrl: _locationUrlCtrl,
                   icon: Icons.map_outlined),
             ]),
 
             const SizedBox(height: 24),
 
-            _sectionLabel('Bio / Description'),
+            _sectionLabel('bio_description_section'.tr()),
             const SizedBox(height: 12),
             _card(children: [
               _field(
@@ -442,7 +443,7 @@ class _LawyerEditProfileScreenState extends State<LawyerEditProfileScreen> {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
                 ),
-                child: const Text('ANNULER'),
+                child: Text('cancel_btn'.tr()),
               )),
               const SizedBox(width: 14),
               Expanded(
@@ -463,8 +464,8 @@ class _LawyerEditProfileScreenState extends State<LawyerEditProfileScreen> {
                         child: CircularProgressIndicator(
                             strokeWidth: 2,
                             valueColor: AlwaysStoppedAnimation(_navy)))
-                    : const Text('ENREGISTRER',
-                        style: TextStyle(
+                    : Text('save_btn'.tr(),
+                        style: const TextStyle(
                             fontWeight: FontWeight.w700, letterSpacing: 1)),
               )),
             ]),
@@ -590,7 +591,7 @@ class _LawyerEditProfileScreenState extends State<LawyerEditProfileScreen> {
                         padding: EdgeInsets.only(right: 4),
                         child:
                             Icon(Icons.check_rounded, size: 14, color: _gold)),
-                  Text(s,
+                  Text(s.tr(),
                       style: TextStyle(
                         color: sel
                             ? _gold

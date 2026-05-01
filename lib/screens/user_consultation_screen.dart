@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/auth_service.dart';
 import '../models/consultation_model.dart';
 import 'dart:ui';
+import 'dart:convert';
+import 'package:file_picker/file_picker.dart';
+import 'package:image/image.dart' as img;
 
 class UserConsultationScreen extends StatefulWidget {
   final String uid;
@@ -65,7 +69,7 @@ class _UserConsultationScreenState extends State<UserConsultationScreen>
               : [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 5, offset: const Offset(0, 2))],
         ),
         child: Text(
-          label,
+          label.tr(),
           style: TextStyle(
             color: selected ? Colors.white : Colors.grey.shade700,
             fontSize: 13,
@@ -122,9 +126,9 @@ class _UserConsultationScreenState extends State<UserConsultationScreen>
                       child: const Icon(Icons.gavel_rounded, color: Colors.white, size: 28),
                     ),
                     const SizedBox(width: 16),
-                    const Text(
-                      'Consultations',
-                      style: TextStyle(
+                    Text(
+                      'consultations'.tr(),
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 26,
                         fontWeight: FontWeight.w800,
@@ -135,7 +139,7 @@ class _UserConsultationScreenState extends State<UserConsultationScreen>
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Posez vos questions juridiques ou parcourez les partages de la communauté.',
+                  'describe_situation'.tr(),
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.9),
                     fontSize: 14,
@@ -169,10 +173,10 @@ class _UserConsultationScreenState extends State<UserConsultationScreen>
                     unselectedLabelColor: Colors.white.withOpacity(0.8),
                     labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                     unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
-                    tabs: const [
-                      Tab(text: 'Nouvelle'),
-                      Tab(text: 'Historique'),
-                      Tab(text: 'Partages'),
+                    tabs: [
+                      Tab(text: 'new_consultation'.tr()),
+                      Tab(text: 'history'.tr()),
+                      Tab(text: 'shares'.tr()),
                     ],
                   ),
                 ),
@@ -245,6 +249,69 @@ class _NewConsultationFormState extends State<_NewConsultationForm> {
   final _questionCtrl = TextEditingController();
   String? _type;
   bool _loading = false;
+  PlatformFile? _attachedFile;
+
+  Future<void> _pickFile() async {
+    HapticFeedback.lightImpact();
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'png', 'jpeg'],
+      withData: true,
+    );
+    if (result != null && result.files.isNotEmpty) {
+      final file = result.files.first;
+      final extension = file.extension?.toLowerCase() ?? '';
+      final isImage = ['jpg', 'jpeg', 'png'].contains(extension);
+
+      Uint8List? finalBytes = file.bytes;
+      String fileName = file.name;
+
+      if (isImage) {
+        if (file.size > 5 * 1024 * 1024) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('file_too_large_msg'.tr(namedArgs: {'size': '5MB'}))),
+            );
+          }
+          return;
+        }
+
+        if (file.bytes != null) {
+          final image = img.decodeImage(file.bytes!);
+          if (image != null) {
+            img.Image resized = image;
+            if (image.width > 1200 || image.height > 1200) {
+              resized = img.copyResize(image, width: image.width > image.height ? 1200 : null, height: image.height > image.width ? 1200 : null);
+            }
+            finalBytes = Uint8List.fromList(img.encodeJpg(resized, quality: 70));
+            if (!fileName.toLowerCase().endsWith('.jpg')) {
+              fileName = fileName.split('.').first + '.jpg';
+            }
+          }
+        }
+      } else {
+        if (file.size > 700 * 1024) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('file_too_large_msg'.tr(namedArgs: {'size': '700KB'}))),
+            );
+          }
+          return;
+        }
+      }
+
+      setState(() => _attachedFile = PlatformFile(
+        name: fileName,
+        size: finalBytes?.length ?? 0,
+        bytes: finalBytes,
+      ));
+    }
+  }
+
+  void _removeFile() {
+    HapticFeedback.lightImpact();
+    setState(() => _attachedFile = null);
+  }
 
   @override
   void dispose() {
@@ -254,8 +321,8 @@ class _NewConsultationFormState extends State<_NewConsultationForm> {
 
   Future<void> _submit() async {
     if (_type == null || _questionCtrl.text.trim().length < 20) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Choisissez un type et écrivez au moins 20 caractères'),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('choose_type_and_length'.tr()),
           backgroundColor: Colors.orange));
       return;
     }
@@ -265,20 +332,29 @@ class _NewConsultationFormState extends State<_NewConsultationForm> {
       final profile = await widget.auth.getUserProfile(widget.uid);
       await widget.auth.createConsultation(
         userId: widget.uid,
-        userFullName: profile?.fullName ?? user?.displayName ?? 'Utilisateur',
+        userFullName: profile?.fullName ?? user?.displayName ?? 'lawyer'.tr(),
         type: _type!,
         question: _questionCtrl.text.trim(),
+        attachedFileName: _attachedFile?.name,
+        attachedFileBase64: _attachedFile?.bytes != null ? base64Encode(_attachedFile!.bytes!) : null,
       );
       if (!mounted) return;
       _questionCtrl.clear();
-      setState(() => _type = null);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Consultation envoyée ! Un avocat vous répondra bientôt.'),
+      setState(() {
+        _type = null;
+        _attachedFile = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('consultation_sent'.tr()),
           backgroundColor: Color(0xFF2E7D32)));
     } catch (e) {
       if (mounted) {
+        String errorMsg = e.toString();
+        if (errorMsg.contains('invalid-argument')) {
+          errorMsg = 'error_file_too_large_storage'.tr();
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red));
+            SnackBar(content: Text(errorMsg), backgroundColor: Colors.red));
       }
     }
     if (mounted) setState(() => _loading = false);
@@ -292,8 +368,8 @@ class _NewConsultationFormState extends State<_NewConsultationForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Spécialité juridique',
-              style: TextStyle(
+          Text('legal_specialty'.tr(),
+              style: const TextStyle(
                   fontWeight: FontWeight.w800,
                   fontSize: 16,
                   color: Color(0xFF1E293B))),
@@ -360,7 +436,7 @@ class _NewConsultationFormState extends State<_NewConsultationForm> {
                         ),
                         const Spacer(),
                         Text(
-                          t,
+                          t.tr(),
                           maxLines: 2,
                           style: TextStyle(
                             color: sel ? Colors.white : const Color(0xFF1E293B),
@@ -377,8 +453,8 @@ class _NewConsultationFormState extends State<_NewConsultationForm> {
             ),
           ),
           const SizedBox(height: 32),
-          const Text('Votre question détaillée',
-              style: TextStyle(
+          Text('detailed_question'.tr(),
+              style: const TextStyle(
                   fontWeight: FontWeight.w800,
                   fontSize: 16,
                   color: Color(0xFF1E293B))),
@@ -395,13 +471,78 @@ class _NewConsultationFormState extends State<_NewConsultationForm> {
               maxLines: 6,
               style: const TextStyle(fontSize: 14, color: Color(0xFF334155), height: 1.5),
               decoration: InputDecoration(
-                hintText: 'Décrivez votre situation juridique de manière claire et précise...',
+                hintText: 'describe_situation'.tr(),
                 hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.all(20),
               ),
             ),
           ),
+          const SizedBox(height: 32),
+          Text('attached_doc_label'.tr(),
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF1E293B))),
+          const SizedBox(height: 16),
+          if (_attachedFile == null)
+            InkWell(
+              onTap: _pickFile,
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.grey.shade200, width: 1.5, style: BorderStyle.solid),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(color: const Color(0xFF0052D4).withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                      child: const Icon(Icons.attach_file_rounded, color: Color(0xFF0052D4), size: 20),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('add_doc_btn'.tr(), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFF334155))),
+                          Text('max_size_limit'.tr(namedArgs: {'size': '700'}), style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFF0052D4).withOpacity(0.3), width: 1.5),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: const Color(0xFF0052D4).withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                    child: const Icon(Icons.insert_drive_file_rounded, color: Color(0xFF0052D4), size: 20),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(_attachedFile!.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFF1E293B)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                        Text('${(_attachedFile!.size / 1024).toStringAsFixed(1)} KB', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                  IconButton(onPressed: _removeFile, icon: const Icon(Icons.cancel_rounded, color: Colors.redAccent)),
+                ],
+              ),
+            ),
           const SizedBox(height: 32),
           SizedBox(
             width: double.infinity,
@@ -421,10 +562,10 @@ class _NewConsultationFormState extends State<_NewConsultationForm> {
                       height: 24,
                       child: CircularProgressIndicator(
                           strokeWidth: 2.5, color: Colors.white))
-                  : const Row(
+                  : Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text('Soumettre la consultation',
+                        Text('submit_consultation'.tr(),
                             style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                         SizedBox(width: 10),
                         Icon(Icons.send_rounded, size: 20),
@@ -478,11 +619,11 @@ class _ConsultationHistory extends StatelessWidget {
                   child: const Icon(Icons.history_rounded, size: 64, color: Color(0xFF0052D4)),
                 ),
                 const SizedBox(height: 24),
-                const Text('Aucun historique',
-                    style: TextStyle(color: Color(0xFF1E293B), fontSize: 18, fontWeight: FontWeight.w700)),
+                Text('no_history'.tr(),
+                    style: const TextStyle(color: Color(0xFF1E293B), fontSize: 18, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 8),
-                const Text('Vos consultations apparaîtront ici',
-                    style: TextStyle(color: Color(0xFF64748B), fontSize: 14)),
+                Text('your_consultations_appear_here'.tr(),
+                    style: const TextStyle(color: Color(0xFF64748B), fontSize: 14)),
               ],
             ),
           );
@@ -502,12 +643,12 @@ class _ConsultationHistory extends StatelessWidget {
                 color: const Color(0xFFEF4444),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Column(
+              child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.delete_sweep_rounded, color: Colors.white, size: 28),
                   SizedBox(height: 4),
-                  Text('Supprimer', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                  Text('delete'.tr(), style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
                 ],
               ),
             ),
@@ -517,18 +658,18 @@ class _ConsultationHistory extends StatelessWidget {
                     context: context,
                     builder: (ctx) => AlertDialog(
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      title: const Text('Supprimer ?', style: TextStyle(fontWeight: FontWeight.bold)),
-                      content: const Text('Cette action est irréversible.'),
+                      title: Text('confirm_delete'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
+                      content: Text('irreversible_action'.tr()),
                       actions: [
                         TextButton(
                             onPressed: () => Navigator.pop(ctx, false),
-                            child: const Text('Annuler', style: TextStyle(color: Colors.grey))),
+                            child: Text('cancel'.tr(), style: const TextStyle(color: Colors.grey))),
                         ElevatedButton(
                           onPressed: () => Navigator.pop(ctx, true),
                           style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFFEF4444),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                          child: const Text('Supprimer', style: TextStyle(color: Colors.white)),
+                          child: Text('delete'.tr(), style: const TextStyle(color: Colors.white)),
                         ),
                       ],
                     ),
@@ -590,7 +731,7 @@ class _ConsultCard extends StatelessWidget {
                       border: Border.all(color: Colors.grey.shade200),
                     ),
                     child: Text(
-                      c.type,
+                      c.type.tr(),
                       style: const TextStyle(
                         color: Color(0xFF334155),
                         fontSize: 11,
@@ -606,7 +747,7 @@ class _ConsultCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    answered ? 'Répondu' : 'En attente',
+                    answered ? 'answered'.tr() : 'pending'.tr(),
                     style: TextStyle(
                       color: answered ? const Color(0xFF16A34A) : const Color(0xFFD97706),
                       fontSize: 12,
@@ -632,6 +773,68 @@ class _ConsultCard extends StatelessWidget {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
+                  
+                  if (c.attachedFileName != null && c.attachedFileBase64 != null) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40, height: 40,
+                            decoration: BoxDecoration(color: const Color(0xFF0052D4).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                            child: (['jpg', 'jpeg', 'png'].contains(c.attachedFileName!.split('.').last.toLowerCase()))
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.memory(base64Decode(c.attachedFileBase64!), fit: BoxFit.cover),
+                                  )
+                                : const Icon(Icons.insert_drive_file_rounded, color: Color(0xFF0052D4), size: 20),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(c.attachedFileName!,
+                                style: const TextStyle(color: Color(0xFF334155), fontSize: 13, fontWeight: FontWeight.w600),
+                                maxLines: 1, overflow: TextOverflow.ellipsis),
+                          ),
+                          if (['jpg', 'jpeg', 'png'].contains(c.attachedFileName!.split('.').last.toLowerCase()))
+                            IconButton(
+                              icon: const Icon(Icons.fullscreen_rounded, color: Color(0xFF0052D4)),
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (ctx) => Dialog(
+                                    backgroundColor: Colors.transparent,
+                                    child: Stack(
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius: BorderRadius.circular(16),
+                                          child: Image.memory(base64Decode(c.attachedFileBase64!)),
+                                        ),
+                                        Positioned(
+                                          right: 10, top: 10,
+                                          child: CircleAvatar(
+                                            backgroundColor: Colors.black54,
+                                            child: IconButton(
+                                              icon: const Icon(Icons.close, color: Colors.white),
+                                              onPressed: () => Navigator.pop(ctx),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
                   
                   if (answered && c.answer != null) ...[
                     const SizedBox(height: 20),
@@ -754,11 +957,11 @@ class _SharedConsultationsState extends State<_SharedConsultations> {
                       child: const Icon(Icons.people_alt_rounded, size: 64, color: Color(0xFF0052D4)),
                     ),
                     const SizedBox(height: 24),
-                    const Text('Aucun partage',
-                        style: TextStyle(color: Color(0xFF1E293B), fontSize: 18, fontWeight: FontWeight.w700)),
+                    Text('no_shares'.tr(),
+                        style: const TextStyle(color: Color(0xFF1E293B), fontSize: 18, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 8),
-                    const Text('Sélectionnez une autre spécialité',
-                        style: TextStyle(color: Color(0xFF64748B), fontSize: 14)),
+                    Text('select_another_specialty'.tr(),
+                        style: const TextStyle(color: Color(0xFF64748B), fontSize: 14)),
                   ],
                 ),
               );
@@ -905,7 +1108,7 @@ class _SharedConsultCardState extends State<_SharedConsultCard> {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    answered ? 'Répondu' : 'En attente',
+                    answered ? 'answered'.tr() : 'pending'.tr(),
                     style: TextStyle(
                       color: answered ? const Color(0xFF16A34A) : const Color(0xFFD97706),
                       fontSize: 12,
@@ -1028,12 +1231,12 @@ class _SharedConsultCardState extends State<_SharedConsultCard> {
                                   mainAxisSize: MainAxisSize.min,
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Row(
+                                    Row(
                                       children: [
                                         Icon(Icons.gavel_rounded, color: Color(0xFF0052D4)),
                                         SizedBox(width: 12),
                                         Text(
-                                          'Votre réponse juridique',
+                                          'legal_answer_title'.tr(),
                                           style: TextStyle(
                                             fontSize: 18,
                                             fontWeight: FontWeight.w800,
@@ -1054,7 +1257,7 @@ class _SharedConsultCardState extends State<_SharedConsultCard> {
                                         maxLines: 6,
                                         style: const TextStyle(fontSize: 14, height: 1.5),
                                         decoration: InputDecoration(
-                                          hintText: 'Rédigez votre conseil...',
+                                          hintText: 'write_advice_hint'.tr(),
                                           hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
                                           border: InputBorder.none,
                                           contentPadding: const EdgeInsets.all(20),
@@ -1074,7 +1277,7 @@ class _SharedConsultCardState extends State<_SharedConsultCard> {
                                               padding: const EdgeInsets.symmetric(vertical: 16),
                                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                             ),
-                                            child: const Text('Annuler', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold)),
+                                            child: Text('cancel'.tr(), style: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold)),
                                           ),
                                         ),
                                         const SizedBox(width: 16),
@@ -1092,7 +1295,7 @@ class _SharedConsultCardState extends State<_SharedConsultCard> {
                                               elevation: 0,
                                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                             ),
-                                            child: const Text('Envoyer la réponse', style: TextStyle(fontWeight: FontWeight.bold)),
+                                            child: Text('submit_answer_btn'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
                                           ),
                                         ),
                                       ],
@@ -1104,7 +1307,7 @@ class _SharedConsultCardState extends State<_SharedConsultCard> {
                             );
                           },
                           icon: const Icon(Icons.reply_rounded, size: 18),
-                          label: const Text('Apporter une réponse', style: TextStyle(fontWeight: FontWeight.bold)),
+                          label: Text('provide_answer_btn'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF0052D4),
                             foregroundColor: Colors.white,
@@ -1124,13 +1327,13 @@ class _SharedConsultCardState extends State<_SharedConsultCard> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: const Color(0xFF0052D4).withOpacity(0.1)),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
                           Icon(Icons.info_outline_rounded, size: 16, color: Color(0xFF0052D4)),
                           SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              'Seuls les avocats vérifiés peuvent répondre.',
+                              'only_lawyers_can_answer'.tr(),
                               style: TextStyle(
                                 color: Color(0xFF0052D4),
                                 fontSize: 12,

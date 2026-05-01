@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:file_picker/file_picker.dart';
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:image/image.dart' as img;
 import '../services/auth_service.dart';
 
 class PostRequestScreen extends StatefulWidget {
@@ -65,10 +69,62 @@ class _PostRequestScreenState extends State<PostRequestScreen>
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'png', 'jpeg'],
-      withData: false,
+      withData: true,
     );
     if (result != null && result.files.isNotEmpty) {
-      setState(() => _attachedFile = result.files.first);
+      final file = result.files.first;
+      final extension = file.extension?.toLowerCase() ?? '';
+      final isImage = ['jpg', 'jpeg', 'png'].contains(extension);
+      
+      Uint8List? finalBytes = file.bytes;
+      String fileName = file.name;
+
+      if (isImage) {
+        // Limit for images is 5MB, but we will compress them
+        if (file.size > 5 * 1024 * 1024) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('file_too_large_msg'.tr(namedArgs: {'size': '5MB'}))),
+            );
+          }
+          return;
+        }
+
+        // Show loading or just process
+        if (file.bytes != null) {
+          // Compression logic
+          final image = img.decodeImage(file.bytes!);
+          if (image != null) {
+            // Resize to a reasonable resolution (max 1200px)
+            img.Image resized = image;
+            if (image.width > 1200 || image.height > 1200) {
+              resized = img.copyResize(image, width: image.width > image.height ? 1200 : null, height: image.height > image.width ? 1200 : null);
+            }
+            // Encode to JPG with 70% quality to ensure it fits in Firestore
+            finalBytes = Uint8List.fromList(img.encodeJpg(resized, quality: 70));
+            // Update name to .jpg for consistency
+            if (!fileName.toLowerCase().endsWith('.jpg')) {
+              fileName = fileName.split('.').first + '.jpg';
+            }
+          }
+        }
+      } else {
+        // Non-image files (PDF, etc.) remain limited to 700KB
+        if (file.size > 700 * 1024) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('file_too_large_msg'.tr(namedArgs: {'size': '700KB'}))),
+            );
+          }
+          return;
+        }
+      }
+
+      setState(() => _attachedFile = PlatformFile(
+        name: fileName,
+        size: finalBytes?.length ?? 0,
+        bytes: finalBytes,
+      ));
     }
   }
 
@@ -82,7 +138,7 @@ class _PostRequestScreenState extends State<PostRequestScreen>
       HapticFeedback.heavyImpact();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Veuillez remplir tous les champs obligatoires'),
+          content: Text('fill_all_fields'.tr()),
           backgroundColor: Colors.orange.shade800,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -96,21 +152,22 @@ class _PostRequestScreenState extends State<PostRequestScreen>
       final profile = await _auth.getUserProfile(user?.uid ?? '');
       await _auth.createRequest(
         userId: user?.uid ?? '',
-        userFullName: profile?.fullName ?? user?.displayName ?? 'Utilisateur',
+        userFullName: profile?.fullName ?? user?.displayName ?? 'public_request_user'.tr(),
         title: _titleCtrl.text.trim(),
         type: selectedCategory!,
         description: _descCtrl.text.trim(),
         attachedFileName: _attachedFile?.name,
+        attachedFileBase64: _attachedFile?.bytes != null ? base64Encode(_attachedFile!.bytes!) : null,
       );
       if (!mounted) return;
       HapticFeedback.mediumImpact();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Row(
+          content: Row(
             children: [
-              Icon(Icons.check_circle_rounded, color: Colors.white),
-              SizedBox(width: 10),
-              Text('Demande publiée avec succès !', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Icon(Icons.check_circle_rounded, color: Colors.white),
+              const SizedBox(width: 10),
+              Text('request_published_success'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
           backgroundColor: const Color(0xFF16A34A),
@@ -121,9 +178,13 @@ class _PostRequestScreenState extends State<PostRequestScreen>
       Navigator.pop(context);
     } catch (e) {
       if (mounted) {
+        String errorMsg = e.toString();
+        if (errorMsg.contains('invalid-argument')) {
+          errorMsg = 'error_file_too_large_storage'.tr(); // Specific msg for the 1MB limit
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: $e'),
+            content: Text(errorMsg),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -151,7 +212,7 @@ class _PostRequestScreenState extends State<PostRequestScreen>
             const SizedBox(height: 12),
             Container(width: 40, height: 5, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10))),
             const SizedBox(height: 20),
-            const Text('Sélectionnez une catégorie', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1E293B))),
+            Text('select_category_title'.tr(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1E293B))),
             const SizedBox(height: 20),
             Expanded(
               child: ListView.separated(
@@ -182,7 +243,7 @@ class _PostRequestScreenState extends State<PostRequestScreen>
                           Icon(Icons.balance_rounded, color: isSel ? Colors.white : const Color(0xFF64748B)),
                           const SizedBox(width: 16),
                           Expanded(
-                            child: Text(cat, style: TextStyle(
+                            child: Text(cat.tr(), style: TextStyle(
                               color: isSel ? Colors.white : const Color(0xFF334155),
                               fontSize: 15,
                               fontWeight: isSel ? FontWeight.bold : FontWeight.w600,
@@ -255,12 +316,12 @@ class _PostRequestScreenState extends State<PostRequestScreen>
                               color: Colors.white.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Text('RÉSEAU PUBLIC', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                            child: Text('public_network'.tr(), style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'Publier une demande',
-                            style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+                          Text(
+                            'post_request_title'.tr(),
+                            style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: -0.5),
                           ),
                         ],
                       ),
@@ -293,14 +354,14 @@ class _PostRequestScreenState extends State<PostRequestScreen>
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(color: const Color(0xFFBFDBFE)),
                           ),
-                          child: const Row(
+                          child: Row(
                             children: [
-                              Icon(Icons.tips_and_updates_rounded, color: Color(0xFF2563EB), size: 24),
-                              SizedBox(width: 12),
+                              const Icon(Icons.tips_and_updates_rounded, color: Color(0xFF2563EB), size: 24),
+                              const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  'Une description claire et détaillée augmente vos chances d\'obtenir des réponses pertinentes.',
-                                  style: TextStyle(color: Color(0xFF1E3A8A), fontSize: 13, height: 1.4, fontWeight: FontWeight.w500),
+                                  'description_tip'.tr(),
+                                  style: const TextStyle(color: Color(0xFF1E3A8A), fontSize: 13, height: 1.4, fontWeight: FontWeight.w500),
                                 ),
                               ),
                             ],
@@ -308,16 +369,16 @@ class _PostRequestScreenState extends State<PostRequestScreen>
                         ),
                         const SizedBox(height: 32),
                         
-                        _buildLabel('Titre de la demande'),
+                        _buildLabel('request_title_label'.tr()),
                         _buildTextField(
                           controller: _titleCtrl,
-                          hint: 'Ex: Aide pour procédure de divorce',
+                          hint: 'request_title_hint'.tr(),
                           icon: Icons.title_rounded,
-                          validator: (v) => v!.trim().isEmpty ? 'Ce champ est obligatoire' : null,
+                          validator: (v) => v!.trim().isEmpty ? 'field_required'.tr() : null,
                         ),
                         const SizedBox(height: 24),
 
-                        _buildLabel('Catégorie juridique'),
+                        _buildLabel('legal_category_label'.tr()),
                         GestureDetector(
                           onTap: _showCategoryBottomSheet,
                           child: Container(
@@ -333,7 +394,7 @@ class _PostRequestScreenState extends State<PostRequestScreen>
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: Text(
-                                    selectedCategory ?? 'Sélectionner une catégorie...',
+                                    selectedCategory != null ? selectedCategory!.tr() : 'select_category_hint'.tr(),
                                     style: TextStyle(
                                       color: selectedCategory == null ? Colors.grey.shade400 : const Color(0xFF334155),
                                       fontSize: 15,
@@ -348,17 +409,17 @@ class _PostRequestScreenState extends State<PostRequestScreen>
                         ),
                         const SizedBox(height: 24),
 
-                        _buildLabel('Description détaillée'),
+                        _buildLabel('detailed_desc_label'.tr()),
                         _buildTextField(
                           controller: _descCtrl,
-                          hint: 'Expliquez les faits, les dates importantes, et ce que vous attendez d\'un avocat...',
+                          hint: 'detailed_desc_hint'.tr(),
                           icon: Icons.subject_rounded,
                           maxLines: 6,
-                          validator: (v) => (v?.trim().length ?? 0) < 20 ? 'Veuillez écrire au moins 20 caractères' : null,
+                          validator: (v) => (v?.trim().length ?? 0) < 20 ? 'at_least_20_chars'.tr() : null,
                         ),
                         const SizedBox(height: 32),
 
-                        _buildLabel('Document joint (optionnel)'),
+                        _buildLabel('attached_doc_label'.tr()),
                         if (_attachedFile == null)
                           InkWell(
                             onTap: _pickFile,
@@ -382,9 +443,9 @@ class _PostRequestScreenState extends State<PostRequestScreen>
                                     child: Icon(Icons.cloud_upload_rounded, size: 32, color: primaryColor),
                                   ),
                                   const SizedBox(height: 12),
-                                  Text('Ajouter un document pertinent', style: TextStyle(color: primaryColor, fontSize: 14, fontWeight: FontWeight.w700)),
+                                  Text('add_doc_btn'.tr(), style: TextStyle(color: primaryColor, fontSize: 14, fontWeight: FontWeight.w700)),
                                   const SizedBox(height: 6),
-                                  Text('PDF, DOC, JPG, PNG (Max 5MB)', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                                  Text('max_size_limit'.tr(), style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
                                 ],
                               ),
                             ),
@@ -448,12 +509,12 @@ class _PostRequestScreenState extends State<PostRequestScreen>
                             ),
                             child: _loading
                                 ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                                : const Row(
+                                : Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Text('Publier ma demande', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-                                      SizedBox(width: 12),
-                                      Icon(Icons.send_rounded, size: 20),
+                                      Text('submit_request_btn'.tr(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                                      const SizedBox(width: 12),
+                                      const Icon(Icons.send_rounded, size: 20),
                                     ],
                                   ),
                           ),

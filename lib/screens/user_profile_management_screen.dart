@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -70,13 +71,13 @@ class _UserProfileManagementScreenState
               ),
             ),
             const SizedBox(height: 20),
-            Text('Photo de profil',
+            Text('photo_profil'.tr(),
                 style: GoogleFonts.poppins(
                     fontSize: 18, fontWeight: FontWeight.w700)),
             const SizedBox(height: 20),
             _bottomSheetOption(
               icon: Icons.photo_library_rounded,
-              label: 'Choisir depuis la galerie',
+              label: 'choose_from_gallery'.tr(),
               color: AppColors.primary,
               onTap: () => Navigator.pop(ctx, 'pick'),
             ),
@@ -84,7 +85,7 @@ class _UserProfileManagementScreenState
               const SizedBox(height: 10),
               _bottomSheetOption(
                 icon: Icons.delete_outline_rounded,
-                label: 'Supprimer la photo',
+                label: 'delete_photo'.tr(),
                 color: Colors.red,
                 onTap: () => Navigator.pop(ctx, 'remove'),
               ),
@@ -92,7 +93,7 @@ class _UserProfileManagementScreenState
             const SizedBox(height: 10),
             _bottomSheetOption(
               icon: Icons.close_rounded,
-              label: 'Annuler',
+              label: 'cancel'.tr(),
               color: Colors.grey,
               onTap: () => Navigator.pop(ctx),
             ),
@@ -111,8 +112,8 @@ class _UserProfileManagementScreenState
             await ProfileImageService.saveUserProfileImage(user.uid, base64);
         if (success && mounted) {
           setState(() => _profileImageBase64 = base64);
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Photo de profil mise à jour !'),
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('photo_updated'.tr()),
             backgroundColor: Colors.green,
           ));
         }
@@ -126,8 +127,8 @@ class _UserProfileManagementScreenState
       );
       if (success && mounted) {
         setState(() => _profileImageBase64 = null);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Photo de profil supprimée'),
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('photo_removed'.tr()),
         ));
       }
       if (mounted) setState(() => _isLoading = false);
@@ -179,24 +180,24 @@ class _UserProfileManagementScreenState
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Edit Profile'),
+        title: Text('edit_profile_dialog_title'.tr()),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'Full Name',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: 'full_name'.tr(),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: emailController,
               keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(
-                labelText: 'Email Address',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: 'email_address'.tr(),
+                border: const OutlineInputBorder(),
               ),
             ),
           ],
@@ -204,7 +205,7 @@ class _UserProfileManagementScreenState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text('cancel'.tr()),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -231,20 +232,20 @@ class _UserProfileManagementScreenState
                 if (mounted) {
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Profile updated successfully')),
+                    const SnackBar(content: Text('profile_updated_success')),
                   );
                 }
               } catch (e) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: $e')),
+                    SnackBar(content: Text('error'.tr() + ': $e')),
                   );
                 }
               } finally {
                 setState(() => _isLoading = false);
               }
             },
-            child: const Text('Save'),
+            child: Text('save_btn'.tr()),
           ),
         ],
       ),
@@ -261,24 +262,24 @@ class _UserProfileManagementScreenState
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('حذف الحساب'),
-        content: const Text(
-          'هذا الإجراء لا يمكن عكسه. سيتم حذف جميع بيانات حسابك بشكل دائم.\n\nهل أنت متأكد؟',
-          style: TextStyle(color: Colors.red),
+        title: Text('delete_account_confirm_title'.tr()),
+        content: Text(
+          'delete_account_confirm_msg'.tr(),
+          style: const TextStyle(color: Colors.red),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('إلغاء'),
+            child: Text('cancel'.tr()),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
             ),
-            child: const Text(
-              'نعم، احذف حسابي',
-              style: TextStyle(color: Colors.white),
+            child: Text(
+              'yes_delete_account'.tr(),
+              style: const TextStyle(color: Colors.white),
             ),
           ),
         ],
@@ -301,7 +302,7 @@ class _UserProfileManagementScreenState
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('خطأ في الحذف: $e')),
+            SnackBar(content: Text('error'.tr() + ': $e')),
           );
         }
       } finally {
@@ -320,19 +321,19 @@ class _UserProfileManagementScreenState
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete All Publications'),
-        content: const Text(
-          'Do you want to delete all your published publications?\nThis action cannot be undone.',
+        title: Text('delete_all_pubs_confirm_title'.tr()),
+        content: Text(
+          'delete_all_pubs_confirm_msg'.tr(),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text('cancel'.tr()),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-            child: const Text('Delete'),
+            child: Text('delete'.tr()),
           ),
         ],
       ),
@@ -354,13 +355,13 @@ class _UserProfileManagementScreenState
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('تم حذف جميع البطاقات')),
+            SnackBar(content: Text('all_pubs_deleted'.tr())),
           );
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('خطأ: $e')),
+            SnackBar(content: Text('error'.tr() + ': $e')),
           );
         }
       } finally {
@@ -379,19 +380,19 @@ class _UserProfileManagementScreenState
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete All Consultations'),
-        content: const Text(
-          'Do you want to delete all your consultations?\nThis action cannot be undone.',
+        title: Text('delete_all_consultations_confirm_title'.tr()),
+        content: Text(
+          'delete_all_consultations_confirm_msg'.tr(),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text('cancel'.tr()),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-            child: const Text('Delete'),
+            child: Text('delete'.tr()),
           ),
         ],
       ),
@@ -413,13 +414,13 @@ class _UserProfileManagementScreenState
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('تم حذف جميع الاستشارات')),
+            SnackBar(content: Text('all_consultations_deleted'.tr())),
           );
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('خطأ: $e')),
+            SnackBar(content: Text('error'.tr() + ': $e')),
           );
         }
       } finally {
@@ -435,7 +436,7 @@ class _UserProfileManagementScreenState
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Mon Profil',
+          'profile_title'.tr(),
           style: GoogleFonts.poppins(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -487,8 +488,8 @@ class _UserProfileManagementScreenState
                     onPressed: _changeProfileImage,
                     child: Text(
                       _profileImageBase64 != null
-                          ? 'Changer la photo'
-                          : 'Ajouter une photo',
+                          ? 'change_photo_btn'.tr()
+                          : 'add_photo_btn'.tr(),
                       style: TextStyle(
                         color: AppColors.primary,
                         fontWeight: FontWeight.w600,
@@ -508,21 +509,21 @@ class _UserProfileManagementScreenState
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'معلومات الحساب',
-                          style: TextStyle(
+                        Text(
+                          'account_info_section'.tr(),
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'الاسم: ${user?.displayName ?? "لم يتم تعيين"}',
+                          'name_label'.tr() + ': ${user?.displayName ?? "pending".tr()}',
                           style: const TextStyle(fontSize: 14),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'البريد: ${user?.email ?? "لم يتم تعيين"}',
+                          'email_label_short'.tr() + ': ${user?.email ?? "pending".tr()}',
                           style: const TextStyle(fontSize: 14),
                         ),
                       ],
@@ -533,14 +534,14 @@ class _UserProfileManagementScreenState
                 // ──── الخيارات ────
                 _OptionTile(
                   icon: Icons.edit_rounded,
-                  label: 'Modifier le profil',
+                  label: 'edit_profile_btn'.tr(),
                   color: AppColors.primary,
                   onTap: _editProfile,
                 ),
                 const SizedBox(height: 12),
                 _OptionTile(
                   icon: Icons.bookmark_rounded,
-                  label: 'Avocats sauvegardés',
+                  label: 'saved_lawyers_btn'.tr(),
                   color: Colors.amber,
                   onTap: () => Navigator.push(
                     context,
@@ -551,14 +552,14 @@ class _UserProfileManagementScreenState
                 const SizedBox(height: 12),
                 _OptionTile(
                   icon: Icons.description_rounded,
-                  label: 'Supprimer mes publications',
+                  label: 'delete_all_publications_btn'.tr(),
                   color: Colors.orange,
                   onTap: _deleteAllPublications,
                 ),
                 const SizedBox(height: 12),
                 _OptionTile(
                   icon: Icons.chat_rounded,
-                  label: 'Supprimer mes consultations',
+                  label: 'delete_all_consultations_btn'.tr(),
                   color: Colors.teal,
                   onTap: _deleteAllConsultations,
                 ),
@@ -568,7 +569,7 @@ class _UserProfileManagementScreenState
                 ElevatedButton.icon(
                   onPressed: _deleteAccount,
                   icon: const Icon(Icons.delete_forever_rounded),
-                  label: const Text('Supprimer mon compte'),
+                  label: Text('delete_account_btn'.tr()),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.error,
                     foregroundColor: Colors.white,

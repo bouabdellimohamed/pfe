@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../api_keys.dart';
 
 class GeminiService {
   static Future<String> classifyCase(String description) async {
-    final apiKey = "AIzaSyDio1lwcPDj7NE61Eha7miy1oyGihfMNX0";
+    final apiKey = ApiKeys.geminiApiKey;
 
     final prompt =
         """

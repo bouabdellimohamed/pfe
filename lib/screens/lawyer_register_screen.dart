@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:typed_data';
 import 'dart:io';
@@ -100,16 +101,15 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
     if (!_isGeneralist && _selected.isEmpty) {
-      setState(() => _error =
-          'Sélectionnez au moins une spécialité ou cochez "Avocat généraliste"');
+      setState(() => _error = 'select_at_least_one_spec'.tr());
       return;
     }
     if (_wilaya == null) {
-      setState(() => _error = 'Veuillez sélectionner votre wilaya');
+      setState(() => _error = 'select_wilaya_err'.tr());
       return;
     }
     if (_pickedDoc == null) {
-      setState(() => _error = 'Veuillez joindre un document justificatif');
+      setState(() => _error = 'attach_doc_err'.tr());
       return;
     }
     setState(() {
@@ -124,7 +124,7 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
       } catch (e) {
         setState(() {
           _loading = false;
-          _error = 'Impossible de lire le fichier. Essayez un autre.';
+          _error = 'file_read_err'.tr();
         });
         return;
       }
@@ -132,7 +132,7 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
     if (docBytes == null) {
       setState(() {
         _loading = false;
-        _error = 'Fichier illisible. Veuillez choisir un autre document.';
+        _error = 'file_unreadable_err'.tr();
       });
       return;
     }
@@ -177,19 +177,16 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
           backgroundColor: _navyLight,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Row(children: [
-            Icon(Icons.hourglass_top_rounded, color: _gold),
-            SizedBox(width: 10),
-            Text('Demande envoyée',
-                style: TextStyle(
+          title: Row(children: [
+            const Icon(Icons.hourglass_top_rounded, color: _gold),
+            const SizedBox(width: 10),
+            Text('request_sent_title'.tr(),
+                style: const TextStyle(
                     color: _textPrimary, fontWeight: FontWeight.w700)),
           ]),
-          content: const Text(
-            'Votre dossier a été soumis avec succès.\n\n'
-            '1. Veuillez vérifier votre boîte mail et cliquer sur le lien de confirmation.\n'
-            '2. Un administrateur va examiner vos informations et votre document.\n\n'
-            'Vous pourrez vous connecter une fois votre email vérifié et votre compte approuvé.',
-            style: TextStyle(color: _textSecondary, height: 1.5),
+          content: Text(
+            'request_sent_msg'.tr(),
+            style: const TextStyle(color: _textSecondary, height: 1.5),
           ),
           actions: [
             ElevatedButton(
@@ -200,8 +197,8 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10)),
               ),
-              child: const Text('Compris',
-                  style: TextStyle(fontWeight: FontWeight.w700)),
+              child: Text('understood_btn'.tr(),
+                  style: const TextStyle(fontWeight: FontWeight.w700)),
             ),
           ],
         ),
@@ -231,7 +228,7 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _sectionTitle('Informations personnelles',
+                        _sectionTitle('personal_info_section'.tr(),
                             Icons.person_outline_rounded),
                         const SizedBox(height: 14),
                         _card(children: [
@@ -241,7 +238,7 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
                               hint: 'Maître Jean Dupont',
                               icon: Icons.person_outline_rounded,
                               validator: (v) =>
-                                  v!.isEmpty ? 'Champ requis' : null),
+                                  v!.isEmpty ? 'required_field'.tr() : null),
                           const SizedBox(height: 14),
                           _field(
                               label: 'Email professionnel *',
@@ -250,7 +247,7 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
                               icon: Icons.mail_outline_rounded,
                               keyboard: TextInputType.emailAddress,
                               validator: (v) =>
-                                  v!.isEmpty ? 'Champ requis' : null),
+                                  v!.isEmpty ? 'required_field'.tr() : null),
                           const SizedBox(height: 14),
                           _field(
                               label: 'Téléphone',
@@ -261,67 +258,67 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
                               validator: (v) {
                                 if (v != null && v.isNotEmpty) {
                                   if (!RegExp(r'^0[567]\d{8}$').hasMatch(v)) {
-                                    return 'Numéro invalide (ex: 0555123456)';
+                                    return 'invalid_phone_err'.tr();
                                   }
                                 }
                                 return null;
                               }),
                         ]),
                         const SizedBox(height: 24),
-                        _sectionTitle('Localisation du cabinet',
+                        _sectionTitle('office_location_section'.tr(),
                             Icons.location_on_outlined),
                         const SizedBox(height: 14),
                         _card(children: [
                           Text(
-                              'Aidez les clients à vous trouver en indiquant votre wilaya.',
+                              'office_location_desc'.tr(),
                               style: TextStyle(
                                   color: _textSecondary.withOpacity(0.8),
                                   fontSize: 12,
                                   fontStyle: FontStyle.italic)),
                           const SizedBox(height: 14),
                           _dropdown(
-                              label: 'Wilaya *',
+                              label: 'wilaya_label'.tr(),
                               value: _wilaya,
                               items: AlgeriaData.wilayaDairas.keys.toList(),
-                              hint: 'Sélectionnez votre wilaya',
+                              hint: 'wilaya_hint'.tr(),
                               onChanged: _onWilayaChanged,
                               validator: (v) =>
-                                  v == null ? 'Champ requis' : null),
+                                  v == null ? 'required_field'.tr() : null),
                           const SizedBox(height: 14),
                           _dropdown(
-                              label: 'Daïra',
+                              label: 'daira_label'.tr(),
                               value: _daira,
                               items: _dairas,
                               hint: _wilaya == null
-                                  ? 'Choisissez une wilaya d\'abord'
-                                  : 'Optionnel',
+                                  ? 'daira_hint_select_wilaya'.tr()
+                                  : 'optional_hint'.tr(),
                               onChanged: _onDairaChanged),
                           const SizedBox(height: 14),
                           _dropdown(
-                              label: 'Commune',
+                              label: 'commune_label'.tr(),
                               value: _commune,
                               items: _communes,
                               hint: _daira == null
-                                  ? 'Choisissez une daïra d\'abord'
-                                  : 'Optionnel',
+                                  ? 'daira_hint_select_daira'.tr()
+                                  : 'optional_hint'.tr(),
                               onChanged: (v) => setState(() => _commune = v)),
                           const SizedBox(height: 14),
                           // ✅ تم إضافة حقل رابط الموقع
                           _field(
-                              label: 'رابط موقع المكتب (Google Maps / GPS)',
+                              label: 'office_location_url_label'.tr(),
                               ctrl: _locationUrlCtrl,
-                              hint: 'أدخل رابط الخرائط...',
+                              hint: 'office_location_url_hint'.tr(),
                               icon: Icons.map_outlined),
                         ]),
                         const SizedBox(height: 24),
                         _sectionTitle(
-                            'Profil professionnel', Icons.gavel_rounded),
+                            'pro_profile_section'.tr(), Icons.gavel_rounded),
                         const SizedBox(height: 14),
                         _card(children: [
                           _field(
-                              label: "Années d'expérience",
+                              label: "experience_label".tr(),
                               ctrl: _expCtrl,
-                              hint: 'ex: 10',
+                              hint: 'experience_hint'.tr(),
                               icon: Icons.work_outline_rounded,
                               keyboard: TextInputType.number),
                           const SizedBox(height: 16),
@@ -349,28 +346,28 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                    const Text('Avocat généraliste',
-                                        style: TextStyle(
+                                    Text('generalist_lawyer_label'.tr(),
+                                        style: const TextStyle(
                                             color: _textPrimary,
                                             fontSize: 15,
                                             fontWeight: FontWeight.w600)),
                                     const SizedBox(height: 2),
                                     Text(
-                                        'Cochez si vous gérez tous types de dossiers',
-                                        style: TextStyle(
+                                        'generalist_lawyer_desc'.tr(),
+                                        style: const TextStyle(
                                             color: _textSecondary,
                                             fontSize: 12)),
                                   ])),
                             ]),
                           ),
                           const SizedBox(height: 16),
-                          Text('Spécialités *',
+                          Text('specialities_label'.tr(),
                               style: const TextStyle(
                                   color: _textSecondary,
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500)),
                           const SizedBox(height: 4),
-                          Text('Choisissez jusqu\'à 3 domaines principaux.',
+                          Text('specialities_desc'.tr(),
                               style: TextStyle(
                                   color: _textSecondary.withOpacity(0.7),
                                   fontSize: 12,
@@ -380,11 +377,11 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
                         ]),
                         const SizedBox(height: 24),
                         _sectionTitle(
-                            'Document justificatif', Icons.upload_file_rounded),
+                            'supporting_doc_section'.tr(), Icons.upload_file_rounded),
                         const SizedBox(height: 14),
                         _card(children: [
                           Text(
-                            'Joignez un document prouvant votre qualité d\'avocat (carte du barreau, diplôme, attestation, etc.)',
+                            'supporting_doc_desc'.tr(),
                             style: TextStyle(
                                 color: _textSecondary.withOpacity(0.85),
                                 fontSize: 12,
@@ -444,7 +441,7 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
                                                 color: _textSecondary,
                                                 fontSize: 11))
                                       else
-                                        Text('PDF, JPG, PNG acceptés',
+                                        Text('pdf_jpg_png_accepted'.tr(),
                                             style: TextStyle(
                                                 color: _textSecondary
                                                     .withOpacity(0.6),
@@ -462,11 +459,11 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
                           ),
                         ]),
                         const SizedBox(height: 24),
-                        _sectionTitle('Sécurité', Icons.shield_outlined),
+                        _sectionTitle('security_section'.tr(), Icons.shield_outlined),
                         const SizedBox(height: 14),
                         _card(children: [
                           _field(
-                              label: 'Mot de passe *',
+                              label: 'password_label'.tr(),
                               ctrl: _passCtrl,
                               hint: '••••••••',
                               icon: Icons.lock_outline_rounded,
@@ -476,11 +473,11 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
                                   () => setState(
                                       () => _obscurePass = !_obscurePass)),
                               validator: (v) => v!.length < 8
-                                  ? 'Minimum 8 caractères'
+                                  ? 'min_8_chars'.tr()
                                   : null),
                           const SizedBox(height: 14),
                           _field(
-                              label: 'Confirmer le mot de passe *',
+                              label: 'confirm_password_label'.tr(),
                               ctrl: _confirmCtrl,
                               hint: '••••••••',
                               icon: Icons.lock_outline_rounded,
@@ -490,7 +487,7 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
                                   () => setState(() =>
                                       _obscureConfirm = !_obscureConfirm)),
                               validator: (v) => v != _passCtrl.text
-                                  ? 'Les mots de passe ne correspondent pas'
+                                  ? 'passwords_not_match'.tr()
                                   : null),
                         ]),
                         if (_error.isNotEmpty) ...[
@@ -518,8 +515,8 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
                                         strokeWidth: 2.5,
                                         valueColor:
                                             AlwaysStoppedAnimation(_navy)))
-                                : const Text("S'INSCRIRE COMME AVOCAT",
-                                    style: TextStyle(
+                                : Text("register_lawyer_btn".tr(),
+                                    style: const TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w700,
                                         letterSpacing: 1.2)),
@@ -529,16 +526,16 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
                         Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text('Déjà un compte ?',
-                                  style: TextStyle(
+                              Text('already_have_account'.tr(),
+                                  style: const TextStyle(
                                       color: _textSecondary, fontSize: 14)),
                               TextButton(
                                 onPressed: () => Navigator.pushReplacementNamed(
                                     context, '/lawyer-login'),
                                 style: TextButton.styleFrom(
                                     foregroundColor: _gold),
-                                child: const Text('Se connecter',
-                                    style: TextStyle(
+                                child: Text('login_btn'.tr(),
+                                    style: const TextStyle(
                                         fontWeight: FontWeight.w700,
                                         fontSize: 14)),
                               ),
@@ -578,11 +575,11 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: const Color(0x33C9A84C)),
             ),
-            child: const Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(Icons.balance_rounded, color: _gold, size: 14),
-              SizedBox(width: 6),
-              Text('ESPACE AVOCAT',
-                  style: TextStyle(
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.balance_rounded, color: _gold, size: 14),
+              const SizedBox(width: 6),
+              Text('lawyer_space_badge'.tr(),
+                  style: const TextStyle(
                       color: _gold,
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
@@ -590,16 +587,16 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
             ]),
           ),
           const SizedBox(height: 12),
-          const Text('Créez votre\nprofil professionnel',
-              style: TextStyle(
+          Text('lawyer_register_title'.tr(),
+              style: const TextStyle(
                   color: _textPrimary,
                   fontSize: 26,
                   fontWeight: FontWeight.w700,
                   height: 1.25,
                   letterSpacing: -0.5)),
           const SizedBox(height: 6),
-          const Text('Rejoignez la plateforme juridique en Algérie',
-              style: TextStyle(color: _textSecondary, fontSize: 13)),
+          Text('lawyer_register_subtitle'.tr(),
+              style: const TextStyle(color: _textSecondary, fontSize: 13)),
         ]),
       );
 
@@ -709,10 +706,17 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
             style: const TextStyle(color: _textPrimary, fontSize: 14),
             decoration: const InputDecoration(
               border: InputBorder.none,
+              filled: false,
               contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
             items: items
-                .map((i) => DropdownMenuItem(value: i, child: Text(i)))
+                .map((i) => DropdownMenuItem(
+                      value: i,
+                      child: Text(
+                        i.tr(),
+                        style: const TextStyle(color: _textPrimary, fontSize: 14),
+                      ),
+                    ))
                 .toList(),
             onChanged: items.isEmpty ? null : onChanged,
             validator: validator,
@@ -755,7 +759,7 @@ class _LawyerRegisterScreenState extends State<LawyerRegisterScreen> {
                   padding: EdgeInsets.only(right: 4),
                   child: Icon(Icons.check_rounded, size: 14, color: _gold),
                 ),
-              Text(s,
+              Text(s.tr(),
                   style: TextStyle(
                     color: sel
                         ? _gold

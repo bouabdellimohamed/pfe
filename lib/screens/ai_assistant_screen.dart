@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../theme/app_theme.dart';
 import 'lawyers_result_screen.dart';
+import '../api_keys.dart';
 
 class AIAssistantScreen extends StatefulWidget {
   const AIAssistantScreen({super.key});
@@ -22,15 +24,15 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
   bool _isLoading = false;
   final List<_ChatMessage> _messages = [];
 
-  static const _apiKey = 'AIzaSyDio1lwcPDj7NE61Eha7miy1oyGihfMNX0';
+  static final _apiKey = ApiKeys.geminiApiKey;
 
   static const _suggestions = [
-    '🏠  J\'ai un problème avec mon propriétaire',
-    '👨‍👩‍👧  Mon conjoint veut divorcer',
-    '💼  Mon employeur ne me paie plus',
-    '🏢  J\'ai un litige commercial',
-    '🚔  J\'ai reçu une convocation police',
-    '📝  Je veux créer une société',
+    '🏠  pro_tenant_problem',
+    '👨‍👩‍👧  divorce_problem',
+    '💼  employer_no_pay',
+    '🏢  commercial_litigation',
+    '🚔  police_summons',
+    '📝  create_company',
   ];
 
   static const _domains = [
@@ -62,8 +64,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
 
     // Welcome message
     _messages.add(_ChatMessage(
-      text:
-          'Bonjour ! 👋 Je suis votre assistant juridique intelligent.\n\nDécrivez votre situation et je vais identifier la spécialité juridique adaptée, puis vous recommander les meilleurs avocats.',
+      text: 'ai_welcome_msg'.tr(),
       isUser: false,
       timestamp: DateTime.now(),
     ));
@@ -114,10 +115,10 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
       );
 
       final prompt = '''
-Tu es un expert juridique algérien. Analyse cette situation et retourne UNIQUEMENT le nom du domaine EXACT parmi cette liste:
+Tu es un expert juridique algérien. Analyse cette situation (qui peut être en arabe ou en français) et retourne UNIQUEMENT le nom du domaine EXACT parmi cette liste:
 [Droit familial, Droit pénal, Droit commercial, Droit civil, Droit immobilier, Droit administratif, Droit du travail, Droit des sociétés, Droit fiscal, Propriété Intellectuelle]
-Si le message est une simple salutation (ex: salut, hi, bonjour) ou n'a strictement aucun rapport avec un problème juridique, retourne EXACTEMENT le mot: HORS_SUJET
-Ne donne aucune explication. Situation: $message
+Si le message est une simple salutation ou n'a aucun rapport juridique, retourne: HORS_SUJET
+Situation: $message
 ''';
 
       final response = await http.post(
@@ -149,8 +150,7 @@ Ne donne aucune explication. Situation: $message
         setState(() {
           _isLoading = false;
           _messages.add(_ChatMessage(
-            text:
-                'Je suis un assistant juridique ⚖️\nVeuillez me décrire un problème légal, un litige ou une question de droit pour que je puisse vous orienter vers la bonne spécialité.',
+            text: 'ai_off_topic_msg'.tr(),
             isUser: false,
             timestamp: DateTime.now(),
           ));
@@ -164,8 +164,7 @@ Ne donne aucune explication. Situation: $message
         setState(() {
           _isLoading = false;
           _messages.add(_ChatMessage(
-            text:
-                'J\'ai analysé votre situation 🔍\n\nVotre cas relève du domaine :',
+            text: 'ai_analysis_done'.tr(),
             isUser: false,
             timestamp: DateTime.now(),
             resultDomain: matched,
@@ -178,8 +177,7 @@ Ne donne aucune explication. Situation: $message
       setState(() {
         _isLoading = false;
         _messages.add(_ChatMessage(
-          text:
-              '⚠️ Une erreur s\'est produite ($e). Veuillez vérifier votre connexion et réessayer.',
+          text: 'ai_error_msg'.tr(namedArgs: {'error': e.toString()}),
           isUser: false,
           timestamp: DateTime.now(),
           isError: true,
@@ -215,7 +213,7 @@ Ne donne aucune explication. Situation: $message
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Assistant IA',
+                Text('ai_assistant'.tr(),
                     style: GoogleFonts.poppins(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
@@ -231,7 +229,7 @@ Ne donne aucune explication. Situation: $message
                       ),
                     ),
                     const SizedBox(width: 4),
-                    Text('En ligne • Propulsé par Gemini',
+                    Text('ai_online'.tr(),
                         style: GoogleFonts.poppins(
                             fontSize: 10, color: AppColors.textSecondary)),
                   ],
@@ -243,14 +241,13 @@ Ne donne aucune explication. Situation: $message
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded, size: 22),
-            tooltip: 'Nouvelle conversation',
+            tooltip: 'new_conversation'.tr(),
             onPressed: () {
               HapticFeedback.mediumImpact();
               setState(() {
                 _messages.clear();
                 _messages.add(_ChatMessage(
-                  text:
-                      'Bonjour ! 👋 Je suis votre assistant juridique intelligent.\n\nDécrivez votre situation et je vais identifier la spécialité juridique adaptée, puis vous recommander les meilleurs avocats.',
+                  text: 'ai_welcome_msg'.tr(),
                   isUser: false,
                   timestamp: DateTime.now(),
                 ));
@@ -299,7 +296,7 @@ Ne donne aucune explication. Situation: $message
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(left: 4, bottom: 8),
-                    child: Text('Exemples de situations :',
+                    child: Text('ai_examples'.tr(),
                         style: GoogleFonts.poppins(
                             fontSize: 12,
                             color: AppColors.textSecondary,
@@ -312,8 +309,10 @@ Ne donne aucune explication. Situation: $message
                       itemCount: _suggestions.length,
                       separatorBuilder: (_, __) => const SizedBox(width: 8),
                       itemBuilder: (_, i) => GestureDetector(
-                        onTap: () => _send(_suggestions[i]
-                            .substring(_suggestions[i].indexOf(' ') + 1)),
+                        onTap: () {
+                          final key = _suggestions[i].split('  ').last;
+                          _send(key.tr());
+                        },
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 8),
@@ -323,7 +322,7 @@ Ne donne aucune explication. Situation: $message
                             border: Border.all(
                                 color: AppColors.primary.withOpacity(0.2)),
                           ),
-                          child: Text(_suggestions[i],
+                          child: Text((_suggestions[i].split('  ').first + '  ' + (_suggestions[i].split('  ').last).tr()),
                               style: GoogleFonts.poppins(
                                   fontSize: 12,
                                   color: AppColors.primary,
@@ -372,7 +371,7 @@ Ne donne aucune explication. Situation: $message
                       textInputAction: TextInputAction.send,
                       onSubmitted: (_) => _send(),
                       decoration: InputDecoration(
-                        hintText: 'Décrivez votre situation juridique...',
+                        hintText: 'ai_hint'.tr(),
                         hintStyle: GoogleFonts.poppins(
                             fontSize: 13, color: AppColors.textDisabled),
                         border: InputBorder.none,
@@ -463,7 +462,7 @@ class _MessageBubble extends StatelessWidget {
                         color: Colors.white, size: 14),
                   ),
                   const SizedBox(width: 6),
-                  Text('Assistant IA',
+                  Text('ai_assistant'.tr(),
                       style: GoogleFonts.poppins(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -541,11 +540,11 @@ class _MessageBubble extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Domaine identifié',
+                            Text('identified_domain'.tr(),
                                 style: GoogleFonts.poppins(
                                     fontSize: 11,
                                     color: AppColors.textSecondary)),
-                            Text(message.resultDomain!,
+                            Text((message.resultDomain as String).tr(),
                                 style: GoogleFonts.poppins(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w800,
@@ -561,7 +560,7 @@ class _MessageBubble extends StatelessWidget {
                     child: ElevatedButton.icon(
                       onPressed: () => onViewLawyers(message.resultDomain!),
                       icon: const Icon(Icons.people_outline_rounded, size: 16),
-                      label: const Text('Voir les avocats recommandés'),
+                      label: Text('view_recommended_lawyers'.tr()),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(

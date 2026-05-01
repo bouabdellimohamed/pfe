@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 
@@ -62,7 +63,7 @@ class _LawyerLoginScreenState extends State<LawyerLoginScreen>
         Navigator.pushReplacementNamed(context, '/lawyer-dashboard');
       }
     } catch (e) {
-      setState(() => _error = 'Erreur inattendue: $e');
+      setState(() => _error = '${'unexpected_error'.tr()}: $e');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -115,6 +116,39 @@ class _LawyerLoginScreenState extends State<LawyerLoginScreen>
             ),
           ),
           // Main Content
+          // Language Toggle
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 10,
+            right: 20,
+            child: Material(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () {
+                  if (context.locale.languageCode == 'ar') {
+                    context.setLocale(const Locale('fr'));
+                  } else {
+                    context.setLocale(const Locale('ar'));
+                  }
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.language_rounded, color: _gold, size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        context.locale.languageCode == 'ar' ? 'FR' : 'AR',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          
           SafeArea(
             child: FadeTransition(
               opacity: _fade,
@@ -181,19 +215,19 @@ class _LawyerLoginScreenState extends State<LawyerLoginScreen>
             child: const Icon(Icons.balance_rounded, size: 36, color: _gold),
           ),
           const SizedBox(height: 24),
-          const Text(
-            'PORTAIL AVOCAT',
-            style: TextStyle(color: _gold, fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 4),
+          Text(
+            'lawyer_portal'.tr(),
+            style: const TextStyle(color: _gold, fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 4),
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Bienvenue',
-            style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w900, letterSpacing: -1),
+          Text(
+            'welcome'.tr(),
+            style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w900, letterSpacing: -1),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Connectez-vous pour gérer vos consultations',
-            style: TextStyle(color: Color(0xFF94A3B8), fontSize: 15, fontWeight: FontWeight.w400),
+          Text(
+            'connect_to_manage'.tr(),
+            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 15, fontWeight: FontWeight.w400),
           ),
         ],
       );
@@ -211,17 +245,17 @@ class _LawyerLoginScreenState extends State<LawyerLoginScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _label('Adresse email professionnelle'),
+              _label('professional_email'.tr()),
               const SizedBox(height: 10),
               _field(
                 ctrl: _emailCtrl,
                 hint: 'maitre@cabinet.dz',
                 icon: Icons.alternate_email_rounded,
                 keyboard: TextInputType.emailAddress,
-                validator: (v) => v!.isEmpty ? 'Champ requis' : null,
+                validator: (v) => v!.isEmpty ? 'field_required'.tr() : null,
               ),
               const SizedBox(height: 20),
-              _label('Mot de passe sécurisé'),
+              _label('secure_password'.tr()),
               const SizedBox(height: 10),
               _field(
                 ctrl: _passCtrl,
@@ -232,7 +266,7 @@ class _LawyerLoginScreenState extends State<LawyerLoginScreen>
                   icon: Icon(_obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded, color: const Color(0xFF64748B), size: 20),
                   onPressed: () => setState(() => _obscure = !_obscure),
                 ),
-                validator: (v) => v!.isEmpty ? 'Champ requis' : null,
+                validator: (v) => v!.isEmpty ? 'field_required'.tr() : null,
               ),
               const SizedBox(height: 8),
               Align(
@@ -240,7 +274,7 @@ class _LawyerLoginScreenState extends State<LawyerLoginScreen>
                 child: TextButton(
                   onPressed: () => _forgotPassword(),
                   style: TextButton.styleFrom(foregroundColor: _gold, padding: EdgeInsets.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                  child: const Text('Mot de passe oublié ?', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  child: Text('forgot_password'.tr(), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                 ),
               ),
               if (_error.isNotEmpty) ...[
@@ -262,9 +296,9 @@ class _LawyerLoginScreenState extends State<LawyerLoginScreen>
                   ),
                   child: _loading
                       ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5, valueColor: AlwaysStoppedAnimation(_navy)))
-                      : const Text(
-                          'S\'IDENTIFIER',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 1.5),
+                      : Text(
+                          'sign_in'.tr(),
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 1.5),
                         ),
                 ),
               ),
@@ -276,10 +310,10 @@ class _LawyerLoginScreenState extends State<LawyerLoginScreen>
   Widget _buildFooter() => Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text("Vous n'êtes pas encore inscrit ? ", style: TextStyle(color: Color(0xFF94A3B8), fontSize: 14, fontWeight: FontWeight.w500)),
+          Text("not_registered".tr(), style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14, fontWeight: FontWeight.w500)),
           GestureDetector(
             onTap: () => Navigator.pushReplacementNamed(context, '/lawyer-register'),
-            child: const Text("Créer un compte", style: TextStyle(color: _gold, fontWeight: FontWeight.w700, fontSize: 14)),
+            child: Text("create_account".tr(), style: const TextStyle(color: _gold, fontWeight: FontWeight.w700, fontSize: 14)),
           ),
         ],
       );
@@ -343,11 +377,11 @@ class _LawyerLoginScreenState extends State<LawyerLoginScreen>
                         final res = await _auth.resendVerificationEmail(_emailCtrl.text.trim(), _passCtrl.text);
                         setState(() {
                           _loading = false;
-                          _error = res ?? 'Lien renvoyé ! Vérifiez votre boîte mail.';
+                          _error = res ?? 'link_resent'.tr();
                         });
                       },
                       style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 0), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                      child: const Text('Renvoyer le lien', style: TextStyle(color: _gold, fontSize: 12, fontWeight: FontWeight.w700)),
+                      child: Text('resend_link'.tr(), style: const TextStyle(color: _gold, fontSize: 12, fontWeight: FontWeight.w700)),
                     ),
                 ],
               ),
@@ -359,7 +393,7 @@ class _LawyerLoginScreenState extends State<LawyerLoginScreen>
   Future<void> _forgotPassword() async {
     final email = _emailCtrl.text.trim();
     if (email.isEmpty) {
-      setState(() => _error = 'Entrez votre email pour réinitialiser le mot de passe');
+      setState(() => _error = 'reset_password_instruction'.tr());
       return;
     }
     try {
@@ -367,7 +401,7 @@ class _LawyerLoginScreenState extends State<LawyerLoginScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Email envoyé à $email (Vérifiez les spams)'),
+            content: Text('email_sent_to'.tr(namedArgs: {'email': email})),
             backgroundColor: _gold,
             behavior: SnackBarBehavior.floating,
           ),

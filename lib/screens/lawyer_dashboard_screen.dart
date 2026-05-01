@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -115,12 +116,12 @@ class _LawyerDashboardScreenState extends State<LawyerDashboardScreen> with Sing
                           const SizedBox(height: 20),
                           _buildProfileCard(),
                           const SizedBox(height: 32),
-                          _buildSectionLabel('Tableau de Bord'),
+                          _buildSectionLabel('dashboard'.tr()),
                           const SizedBox(height: 16),
                           _buildStatsGrid(),
                           if (_lawyer?.bio != null && _lawyer!.bio!.isNotEmpty) ...[
                             const SizedBox(height: 32),
-                            _buildSectionLabel('À propos de vous'),
+                            _buildSectionLabel('about_you'.tr()),
                             const SizedBox(height: 16),
                             _buildBioCard(),
                           ],
@@ -162,10 +163,27 @@ class _LawyerDashboardScreenState extends State<LawyerDashboardScreen> with Sing
         child: const Icon(Icons.balance_rounded, color: Colors.white, size: 20),
       ),
       const SizedBox(width: 12),
-      Text('Espace Avocat', style: GoogleFonts.outfit(
+      Text('lawyer_portal'.tr(), style: GoogleFonts.outfit(
           color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600)),
     ]),
     actions: [
+      Container(
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.1),
+          shape: BoxShape.circle,
+        ),
+        child: IconButton(
+          icon: const Icon(Icons.language_rounded, color: Colors.white, size: 20),
+          onPressed: () {
+            if (context.locale.languageCode == 'ar') {
+              context.setLocale(const Locale('fr'));
+            } else {
+              context.setLocale(const Locale('ar'));
+            }
+          },
+        ),
+      ),
+      const SizedBox(width: 8),
       Container(
         margin: const EdgeInsets.only(right: 12),
         decoration: BoxDecoration(
@@ -174,7 +192,7 @@ class _LawyerDashboardScreenState extends State<LawyerDashboardScreen> with Sing
         ),
         child: IconButton(
           icon: const Icon(Icons.logout_rounded, color: Colors.white, size: 20),
-          tooltip: 'Déconnexion',
+          tooltip: 'logout'.tr(),
           onPressed: _confirmSignOut,
         ),
       ),
@@ -210,7 +228,7 @@ class _LawyerDashboardScreenState extends State<LawyerDashboardScreen> with Sing
           ),
         ),
         const SizedBox(height: 18),
-        Text(_lawyer?.name ?? 'Avocat', style: GoogleFonts.outfit(
+        Text(_lawyer?.name ?? 'lawyer'.tr(), style: GoogleFonts.outfit(
             color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
         const SizedBox(height: 10),
         if (_lawyer?.speciality != null)
@@ -223,7 +241,7 @@ class _LawyerDashboardScreenState extends State<LawyerDashboardScreen> with Sing
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: _gold.withOpacity(0.3)),
               ),
-              child: Text(s, style: GoogleFonts.poppins(color: _goldLight, fontSize: 12, fontWeight: FontWeight.w500)),
+              child: Text(s.tr(), style: GoogleFonts.poppins(color: _goldLight, fontSize: 12, fontWeight: FontWeight.w500)),
             )).toList(),
           ),
         const SizedBox(height: 24),
@@ -237,7 +255,7 @@ class _LawyerDashboardScreenState extends State<LawyerDashboardScreen> with Sing
                   .where((s) => s != null && s.isNotEmpty)
                   .join(', ')),
         if (_lawyer?.experience != null)
-          _infoRow(Icons.work_outline_rounded, "${_lawyer!.experience} ans d'expérience"),
+          _infoRow(Icons.work_outline_rounded, 'years_exp'.tr(namedArgs: {'count': _lawyer!.experience.toString()})),
         const SizedBox(height: 24),
         SizedBox(
           width: double.infinity,
@@ -250,7 +268,7 @@ class _LawyerDashboardScreenState extends State<LawyerDashboardScreen> with Sing
               )).then((v) { if (v == true) _loadAll(); });
             },
             icon: const Icon(Icons.edit_outlined, size: 18, color: Colors.black87),
-            label: Text('Modifier le profil', style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.black87)),
+            label: Text('edit_profile'.tr(), style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.black87)),
             style: ElevatedButton.styleFrom(
               backgroundColor: _gold,
               elevation: 8,
@@ -290,13 +308,13 @@ class _LawyerDashboardScreenState extends State<LawyerDashboardScreen> with Sing
 
   Widget _buildStatsGrid() {
     final stats = [
-      _Stat('Demandes', '$_openRequests',
+      _Stat('requests_stat'.tr(), '$_openRequests',
           Icons.inbox_outlined, const Color(0xFF4CAF50)),
-      _Stat('Consultations', '$_myConsultations',
+      _Stat('consultations_stat'.tr(), '$_myConsultations',
           Icons.chat_bubble_outline_rounded, const Color(0xFF42A5F5)),
-      _Stat('Messages', '$_myConversations',
+      _Stat('messages'.tr(), '$_myConversations',
           Icons.forum_outlined, const Color(0xFFFF9800)),
-      _Stat('Note', '${(_lawyer?.rating ?? 0.0).toStringAsFixed(1)}',
+      _Stat('rating_stat'.tr(), '${(_lawyer?.rating ?? 0.0).toStringAsFixed(1)}',
           Icons.star_rounded, _gold),
     ];
     return GridView.builder(
@@ -369,13 +387,13 @@ class _LawyerDashboardScreenState extends State<LawyerDashboardScreen> with Sing
       builder: (_) => AlertDialog(
         backgroundColor: const Color(0xFF1B2D42),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: Colors.white.withOpacity(0.1))),
-        title: Text('Déconnexion',
+        title: Text('logout_confirm_title'.tr(),
             style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
-        content: Text('Voulez-vous vraiment vous déconnecter ?',
+        content: Text('confirm_logout'.tr(),
             style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context),
-              child: Text('Annuler', style: GoogleFonts.poppins(color: Colors.white70))),
+              child: Text('cancel'.tr(), style: GoogleFonts.poppins(color: Colors.white70))),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
@@ -386,7 +404,7 @@ class _LawyerDashboardScreenState extends State<LawyerDashboardScreen> with Sing
               backgroundColor: Colors.redAccent,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: Text('Déconnecter', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
+            child: Text('logout'.tr(), style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
           ),
         ],
       ),

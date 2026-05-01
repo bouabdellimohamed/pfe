@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'theme/app_theme.dart';
@@ -16,6 +17,7 @@ import 'auth_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await EasyLocalization.ensureInitialized();
 
   // Set preferred orientations
   await SystemChrome.setPreferredOrientations([
@@ -36,7 +38,14 @@ void main() async {
     debugPrint('Firebase init error: $e');
   }
 
-  runApp(const JurisdZApp());
+  runApp(
+    EasyLocalization(
+      supportedLocales: const [Locale('ar'), Locale('fr')],
+      path: 'assets/translations',
+      fallbackLocale: const Locale('fr'),
+      child: const JurisdZApp(),
+    ),
+  );
 }
 
 class JurisdZApp extends StatelessWidget {
@@ -45,7 +54,10 @@ class JurisdZApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'JURISDZ — Plateforme Juridique Algérienne',
+      onGenerateTitle: (context) => 'app_title'.tr(),
+      localizationsDelegates: context.localizationDelegates,
+      supportedLocales: context.supportedLocales,
+      locale: context.locale,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
 

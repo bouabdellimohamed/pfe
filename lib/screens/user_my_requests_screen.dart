@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
 import '../models/consultation_model.dart';
@@ -60,9 +62,9 @@ class UserMyRequestsScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Mes Demandes',
-                        style: TextStyle(
+                      Text(
+                        'my_requests_title'.tr(),
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 24,
                           fontWeight: FontWeight.w800,
@@ -71,7 +73,7 @@ class UserMyRequestsScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Suivez vos publications et réponses',
+                        'follow_publications'.tr(),
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.9),
                           fontSize: 13,
@@ -98,7 +100,7 @@ class UserMyRequestsScreen extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.all(24),
                       child: Text(
-                        'Erreur:\n${snap.error}',
+                        'error'.tr() + ':\n${snap.error}',
                         textAlign: TextAlign.center,
                         style: const TextStyle(color: Colors.red),
                       ),
@@ -120,11 +122,11 @@ class UserMyRequestsScreen extends StatelessWidget {
                           child: const Icon(Icons.inbox_rounded, size: 64, color: Color(0xFF0052D4)),
                         ),
                         const SizedBox(height: 24),
-                        const Text('Aucune demande',
-                            style: TextStyle(color: Color(0xFF1E293B), fontSize: 18, fontWeight: FontWeight.w700)),
+                        Text('no_requests_msg'.tr(),
+                            style: const TextStyle(color: Color(0xFF1E293B), fontSize: 18, fontWeight: FontWeight.w700)),
                         const SizedBox(height: 8),
-                        const Text('Vos demandes publiées apparaîtront ici',
-                            style: TextStyle(color: Color(0xFF64748B), fontSize: 14)),
+                        Text('your_requests_appear_here'.tr(),
+                            style: const TextStyle(color: Color(0xFF64748B), fontSize: 14)),
                       ],
                     ),
                   );
@@ -144,12 +146,12 @@ class UserMyRequestsScreen extends StatelessWidget {
                         color: const Color(0xFFEF4444),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Column(
+                      child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.delete_sweep_rounded, color: Colors.white, size: 28),
-                          SizedBox(height: 4),
-                          Text('Supprimer', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                          const Icon(Icons.delete_sweep_rounded, color: Colors.white, size: 28),
+                          const SizedBox(height: 4),
+                          Text('delete_swipe'.tr(), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
                         ],
                       ),
                     ),
@@ -159,18 +161,18 @@ class UserMyRequestsScreen extends StatelessWidget {
                         context: context,
                         builder: (ctx) => AlertDialog(
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          title: const Text('Supprimer ?', style: TextStyle(fontWeight: FontWeight.bold)),
-                          content: Text('Supprimer "${list[i].title}" ?\nCette action est irréversible.'),
+                          title: Text('confirm_delete_title'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
+                          content: Text('confirm_delete_msg'.tr(namedArgs: {'title': list[i].title})),
                           actions: [
                             TextButton(
                                 onPressed: () => Navigator.pop(ctx, false),
-                                child: const Text('Annuler', style: TextStyle(color: Colors.grey))),
+                                child: Text('cancel'.tr(), style: const TextStyle(color: Colors.grey))),
                             ElevatedButton(
                               onPressed: () => Navigator.pop(ctx, true),
                               style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFFEF4444),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                              child: const Text('Supprimer', style: TextStyle(color: Colors.white)),
+                              child: Text('delete'.tr(), style: const TextStyle(color: Colors.white)),
                             ),
                           ],
                         ),
@@ -180,7 +182,7 @@ class UserMyRequestsScreen extends StatelessWidget {
                       FirebaseFirestore.instance.collection('requests').doc(list[i].id).delete();
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('"${list[i].title}" supprimée', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          content: Text('deleted_success'.tr(namedArgs: {'title': list[i].title}), style: const TextStyle(fontWeight: FontWeight.bold)),
                           backgroundColor: const Color(0xFF1E293B),
                           behavior: SnackBarBehavior.floating,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -250,7 +252,7 @@ class _RequestCardState extends State<_RequestCard> {
                       border: Border.all(color: Colors.grey.shade200),
                     ),
                     child: Text(
-                      widget.r.type,
+                      widget.r.type.tr(),
                       style: const TextStyle(
                         color: Color(0xFF334155),
                         fontSize: 11,
@@ -266,12 +268,12 @@ class _RequestCardState extends State<_RequestCard> {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    open ? 'Ouvert' : 'Fermé',
-                    style: TextStyle(
-                      color: open ? const Color(0xFF16A34A) : const Color(0xFF64748B),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
+                      open ? 'request_open'.tr() : 'request_closed'.tr(),
+                      style: TextStyle(
+                        color: open ? const Color(0xFF16A34A) : const Color(0xFF64748B),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
                   ),
                 ],
               ),
@@ -302,6 +304,81 @@ class _RequestCardState extends State<_RequestCard> {
                       height: 1.5,
                     ),
                   ),
+                  
+                  if (widget.r.attachedFileName != null && widget.r.attachedFileBase64 != null) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0052D4).withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: (['jpg', 'jpeg', 'png'].contains(widget.r.attachedFileName!.split('.').last.toLowerCase()))
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.memory(base64Decode(widget.r.attachedFileBase64!), fit: BoxFit.cover),
+                                  )
+                                : const Icon(Icons.insert_drive_file_rounded, color: Color(0xFF0052D4), size: 24),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.r.attachedFileName!,
+                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF1E293B)),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text('attachment'.tr(), style: TextStyle(color: Colors.grey.shade500, fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                          if (['jpg', 'jpeg', 'png'].contains(widget.r.attachedFileName!.split('.').last.toLowerCase()))
+                            IconButton(
+                              icon: const Icon(Icons.fullscreen_rounded, color: Color(0xFF0052D4)),
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (ctx) => Dialog(
+                                    backgroundColor: Colors.transparent,
+                                    child: Stack(
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius: BorderRadius.circular(16),
+                                          child: Image.memory(base64Decode(widget.r.attachedFileBase64!)),
+                                        ),
+                                        Positioned(
+                                          right: 10, top: 10,
+                                          child: CircleAvatar(
+                                            backgroundColor: Colors.black54,
+                                            child: IconButton(
+                                              icon: const Icon(Icons.close, color: Colors.white),
+                                              onPressed: () => Navigator.pop(ctx),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 20),
 
                   // ── RÉPONSES BUTTON ──
@@ -317,7 +394,7 @@ class _RequestCardState extends State<_RequestCard> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '${widget.r.respondedLawyerIds.length} réponse(s)',
+                        'responses_count_plural'.tr(namedArgs: {'count': widget.r.respondedLawyerIds.length.toString()}),
                         style: const TextStyle(
                           color: Color(0xFF0052D4),
                           fontSize: 12,
@@ -344,7 +421,7 @@ class _RequestCardState extends State<_RequestCard> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  _showLawyers ? 'Masquer' : 'Voir les avocats',
+                                  _showLawyers ? 'hide_responses'.tr() : 'view_lawyers'.tr(),
                                   style: TextStyle(
                                     color: _showLawyers ? Colors.white : const Color(0xFF334155),
                                     fontSize: 12,
@@ -470,7 +547,7 @@ class _LawyerResponseTileState extends State<_LawyerResponseTile> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('error'.tr() + ': $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -521,7 +598,7 @@ class _LawyerResponseTileState extends State<_LawyerResponseTile> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  _lawyer!.speciality.split(',').first.trim(),
+                  _lawyer!.speciality.split(',').first.trim().tr(),
                   style: const TextStyle(color: Color(0xFF64748B), fontSize: 11),
                 ),
               ],
@@ -544,12 +621,12 @@ class _LawyerResponseTileState extends State<_LawyerResponseTile> {
                         )
                       ],
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.chat_rounded, color: Colors.white, size: 14),
-                        SizedBox(width: 6),
-                        Text('Contacter', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                        const Icon(Icons.chat_rounded, color: Colors.white, size: 14),
+                        const SizedBox(width: 6),
+                        Text('contact_lawyer_btn'.tr(), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ),

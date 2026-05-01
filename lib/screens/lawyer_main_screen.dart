@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
@@ -28,15 +29,15 @@ class _LawyerMainScreenState extends State<LawyerMainScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1B2D42),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: Colors.white.withOpacity(0.1))),
-        title: Text('Déconnexion',
+        title: Text('logout_confirm_title'.tr(),
             style: GoogleFonts.outfit(
                 color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
-        content: Text('Voulez-vous vraiment vous déconnecter ?',
+        content: Text('confirm_logout'.tr(),
             style: GoogleFonts.poppins(color: Colors.white70, fontSize: 14)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Annuler',
+            child: Text('cancel'.tr(),
                 style: GoogleFonts.poppins(color: Colors.white70)),
           ),
           ElevatedButton(
@@ -46,7 +47,7 @@ class _LawyerMainScreenState extends State<LawyerMainScreen> {
               shape:
                   RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: Text('Déconnecter',
+            child: Text('logout'.tr(),
                 style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
           ),
         ],
@@ -63,6 +64,7 @@ class _LawyerMainScreenState extends State<LawyerMainScreen> {
     return Scaffold(
       extendBody: true,
       body: IndexedStack(
+        key: ValueKey(context.locale.languageCode),
         index: _tab,
         children: const [
           LawyerDashboardScreen(),
@@ -95,21 +97,21 @@ class _LawyerMainScreenState extends State<LawyerMainScreen> {
                 selectedLabelStyle: GoogleFonts.poppins(
                     fontSize: 11, fontWeight: FontWeight.w600),
                 unselectedLabelStyle: GoogleFonts.poppins(fontSize: 11),
-                items: const [
+                items: [
                   BottomNavigationBarItem(
                     icon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Icons.home_outlined)),
                     activeIcon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Icons.home_rounded)),
-                    label: 'Accueil',
+                    label: 'home'.tr(),
                   ),
                   BottomNavigationBarItem(
                     icon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Icons.inbox_outlined)),
                     activeIcon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Icons.inbox_rounded)),
-                    label: 'Publications',
+                    label: 'publications'.tr(),
                   ),
                   BottomNavigationBarItem(
                     icon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Icons.forum_outlined)),
                     activeIcon: Padding(padding: EdgeInsets.only(bottom: 4), child: Icon(Icons.forum_rounded)),
-                    label: 'Messages',
+                    label: 'messages'.tr(),
                   ),
                 ],
               ),
@@ -150,7 +152,7 @@ class _MessagesTab extends StatelessWidget {
                     backgroundColor: Colors.transparent,
                     automaticallyImplyLeading: false,
                     elevation: 0,
-                    title: Text('Messages',
+                    title: Text('messages'.tr(),
                         style: GoogleFonts.outfit(
                             color: Colors.white,
                             fontSize: 20,

@@ -4,10 +4,13 @@ import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:image/image.dart' as img;
+import 'dart:typed_data';
 
 import '../models/chat_models.dart';
 import '../services/chat_service.dart';
 import '../widgets/profile_avatar.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class ChatThreadScreen extends StatefulWidget {
   final String conversationId;
@@ -22,7 +25,7 @@ class _ChatThreadScreenState extends State<ChatThreadScreen> {
   final _ctrl = TextEditingController();
   final _scroll = ScrollController();
   
-  String _otherPersonName = 'Chargement...';
+  String _otherPersonName = 'loading'.tr();
   String? _otherPersonImage;
   bool _isLawyerContext = false;
   
@@ -66,7 +69,7 @@ class _ChatThreadScreenState extends State<ChatThreadScreen> {
         if (otherName.isEmpty && conversation.userName != null) {
           otherName = conversation.userName!.trim();
         }
-        if (otherName.isEmpty) otherName = 'Client';
+        if (otherName.isEmpty) otherName = 'client_label'.tr();
       } else {
         final lawyerDoc = await FirebaseFirestore.instance.collection('lawyers').doc(conversation.lawyerId).get();
         if (lawyerDoc.exists) {
@@ -77,10 +80,10 @@ class _ChatThreadScreenState extends State<ChatThreadScreen> {
         if (otherName.isEmpty && conversation.lawyerName != null) {
           otherName = conversation.lawyerName!.trim();
         }
-        if (otherName.isEmpty) otherName = 'Avocat';
+        if (otherName.isEmpty) otherName = 'lawyer_label'.tr();
       }
     } catch (e) {
-      otherName = iAmTheLawyer ? 'Client' : 'Avocat';
+      otherName = iAmTheLawyer ? 'client_label'.tr() : 'lawyer_label'.tr();
     }
 
     if (mounted) {
@@ -106,14 +109,47 @@ class _ChatThreadScreenState extends State<ChatThreadScreen> {
     );
     if (result != null && result.files.isNotEmpty) {
       final file = result.files.first;
-      // Check size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Le fichier est trop grand (Max 5MB)')),
-        );
-        return;
+      final extension = file.extension?.toLowerCase() ?? '';
+      final isImage = ['jpg', 'jpeg', 'png'].contains(extension);
+      
+      Uint8List? finalBytes = file.bytes;
+      String fileName = file.name;
+
+      if (isImage) {
+        if (file.size > 5 * 1024 * 1024) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('file_too_large_msg'.tr(namedArgs: {'size': '5000'}))),
+          );
+          return;
+        }
+
+        if (file.bytes != null) {
+          final image = img.decodeImage(file.bytes!);
+          if (image != null) {
+            img.Image resized = image;
+            if (image.width > 1200 || image.height > 1200) {
+              resized = img.copyResize(image, width: image.width > image.height ? 1200 : null, height: image.height > image.width ? 1200 : null);
+            }
+            finalBytes = Uint8List.fromList(img.encodeJpg(resized, quality: 70));
+            if (!fileName.toLowerCase().endsWith('.jpg')) {
+              fileName = fileName.split('.').first + '.jpg';
+            }
+          }
+        }
+      } else {
+        if (file.size > 700 * 1024) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('file_too_large_msg'.tr(namedArgs: {'size': '700'}))),
+          );
+          return;
+        }
       }
-      setState(() => _attachedFile = file);
+
+      setState(() => _attachedFile = PlatformFile(
+        name: fileName,
+        size: finalBytes?.length ?? 0,
+        bytes: finalBytes,
+      ));
     }
   }
 
@@ -154,7 +190,7 @@ class _ChatThreadScreenState extends State<ChatThreadScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
+          SnackBar(content: Text('error'.tr() + ': $e')),
         );
       }
     } finally {
@@ -272,13 +308,41 @@ class _ChatThreadScreenState extends State<ChatThreadScreen> {
                 children: [
                   if (hasAttachment) ...[
                     if (isImage)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxHeight: 200, maxWidth: 250),
-                          child: Image.memory(
-                            base64Decode(m.attachedFileBase64!),
-                            fit: BoxFit.cover,
+                      GestureDetector(
+                        onTap: () {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => Dialog(
+                              backgroundColor: Colors.transparent,
+                              child: Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Image.memory(base64Decode(m.attachedFileBase64!)),
+                                  ),
+                                  Positioned(
+                                    right: 10, top: 10,
+                                    child: CircleAvatar(
+                                      backgroundColor: Colors.black54,
+                                      child: IconButton(
+                                        icon: const Icon(Icons.close, color: Colors.white),
+                                        onPressed: () => Navigator.pop(ctx),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 200, maxWidth: 250),
+                            child: Image.memory(
+                              base64Decode(m.attachedFileBase64!),
+                              fit: BoxFit.cover,
+                            ),
                           ),
                         ),
                       )
@@ -419,7 +483,7 @@ class _ChatThreadScreenState extends State<ChatThreadScreen> {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          'En ligne',
+                          'online_status'.tr(),
                           style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 11, fontWeight: FontWeight.w500),
                         ),
                       ],
@@ -441,7 +505,7 @@ class _ChatThreadScreenState extends State<ChatThreadScreen> {
                   return Center(child: CircularProgressIndicator(color: primaryColor));
                 }
                 if (snap.hasError) {
-                  return Center(child: Text('Erreur: ${snap.error}', style: const TextStyle(color: Colors.red)));
+                  return Center(child: Text('error'.tr() + ': ${snap.error}', style: const TextStyle(color: Colors.red)));
                 }
                 final list = snap.data ?? [];
                 WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -463,7 +527,7 @@ class _ChatThreadScreenState extends State<ChatThreadScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Démarrez la discussion',
+                          'start_discussion'.tr(),
                           style: TextStyle(
                             color: isDark ? Colors.white70 : const Color(0xFF64748B),
                             fontSize: 16,
@@ -535,9 +599,10 @@ class _ChatThreadScreenState extends State<ChatThreadScreen> {
                       onSubmitted: (_) => _send(),
                       style: TextStyle(color: isDark ? Colors.white : const Color(0xFF1E293B)),
                       decoration: InputDecoration(
-                        hintText: 'Tapez votre message...',
+                        hintText: 'type_message_hint'.tr(),
                         hintStyle: TextStyle(color: isDark ? const Color(0xFF8A9BB0) : Colors.grey.shade400, fontSize: 14),
                         border: InputBorder.none,
+                        filled: false,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                       ),
                     ),

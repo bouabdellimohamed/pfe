@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/lawyer_model.dart';
@@ -17,15 +18,15 @@ class FavoritesScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Avocats sauvegardés'),
+        title: Text('favorites_title'.tr()),
         actions: [
           IconButton(
             icon: const Icon(Icons.info_outline_rounded, size: 20),
             tooltip: 'Info',
             onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
+              SnackBar(
                   content: Text(
-                      'Appuyez longuement sur une carte pour retirer des favoris')),
+                      'long_press_remove_hint'.tr())),
             ),
           ),
         ],
@@ -59,7 +60,7 @@ class FavoritesScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      'Aucun avocat sauvegardé',
+                      'no_favorites_msg'.tr(),
                       style: GoogleFonts.poppins(
                           fontSize: 17,
                           fontWeight: FontWeight.w700,
@@ -67,7 +68,7 @@ class FavoritesScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Consultez les profils d\'avocats et appuyez sur ♡ pour les sauvegarder ici.',
+                      'view_profiles_save_hint'.tr(),
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
                           fontSize: 13,
@@ -117,13 +118,13 @@ class _FavoriteLawyerCard extends StatelessWidget {
           color: AppColors.error,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: const Column(
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.bookmark_remove_rounded, color: Colors.white, size: 28),
-            SizedBox(height: 4),
-            Text('Retirer',
-                style: TextStyle(
+            const Icon(Icons.bookmark_remove_rounded, color: Colors.white, size: 28),
+            const SizedBox(height: 4),
+            Text('remove_swipe'.tr(),
+                style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
                     fontWeight: FontWeight.w600)),
@@ -135,9 +136,9 @@ class _FavoriteLawyerCard extends StatelessWidget {
         service.removeFavorite(lawyer.uid);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${lawyer.name} retiré des favoris'),
+            content: Text('removed_from_favorites'.tr(namedArgs: {'name': lawyer.name})),
             action: SnackBarAction(
-              label: 'Annuler',
+              label: 'undo'.tr(),
               onPressed: () => service.addFavorite(lawyer.uid),
             ),
           ),
@@ -193,7 +194,7 @@ class _FavoriteLawyerCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      lawyer.speciality,
+                      lawyer.speciality.tr(),
                       style: GoogleFonts.poppins(
                           fontSize: 12, color: AppColors.primary),
                       maxLines: 1,
@@ -216,7 +217,7 @@ class _FavoriteLawyerCard extends StatelessWidget {
                         Text(
                           lawyer.rating > 0
                               ? lawyer.rating.toStringAsFixed(1)
-                              : 'Nouveau',
+                              : 'new_lawyer'.tr(),
                           style: GoogleFonts.poppins(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,

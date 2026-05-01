@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -68,7 +69,7 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
     if (mounted) {
       setState(() => _isFavorite = result);
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(result ? 'Avocat ajouté aux favoris ❤️' : 'Retiré des favoris', style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Text(result ? 'added_to_favorites'.tr() : 'removed_from_favorites'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: const Color(0xFF1E293B),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -130,7 +131,7 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
         _submittingRating = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Merci pour votre évaluation (${rating.toStringAsFixed(1)}★)', style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Text('rating_thanks'.tr(namedArgs: {'rating': rating.toStringAsFixed(1)}), style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: const Color(0xFF10B981),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -201,7 +202,7 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Impossible d\'ouvrir la carte. Vérifiez le lien.', style: TextStyle(fontWeight: FontWeight.bold)),
+            content: Text('map_open_err'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
             backgroundColor: const Color(0xFFEF4444),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -264,12 +265,12 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
                   elevation: 0,
                   shadowColor: _primary.withOpacity(0.4),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.chat_bubble_rounded, size: 20),
-                    SizedBox(width: 10),
-                    Text('CONTACTER L\'AVOCAT', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                    const Icon(Icons.chat_bubble_rounded, size: 20),
+                    const SizedBox(width: 10),
+                    Text('contact_lawyer_btn'.tr(), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
                   ],
                 ),
               ),
@@ -384,7 +385,7 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
                             const Icon(Icons.balance_rounded, color: _primary, size: 16),
                             const SizedBox(width: 8),
                             Text(
-                              lawyer.speciality,
+                              lawyer.speciality.split(', ').map((s) => s.tr()).join(', '),
                               style: const TextStyle(color: _primary, fontWeight: FontWeight.w700, fontSize: 13),
                             ),
                           ],
@@ -399,16 +400,16 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
                             icon: Icons.star_rounded,
                             iconColor: const Color(0xFFF59E0B),
                             bgColor: const Color(0xFFFFFBEB),
-                            title: '${lawyer.rating.toStringAsFixed(1)}',
-                            subtitle: '${lawyer.reviewCount} avis',
+                            title: lawyer.rating.toStringAsFixed(1),
+                            subtitle: '${lawyer.reviewCount} ' + 'reviews_stat'.tr(),
                           ),
                           const SizedBox(width: 12),
                           _buildStatCard(
                             icon: Icons.work_history_rounded,
                             iconColor: _primary,
                             bgColor: _primary.withOpacity(0.05),
-                            title: '${lawyer.experience ?? 0} ans',
-                            subtitle: 'Expérience',
+                            title: '${lawyer.experience ?? 0} ' + 'years_suffix'.tr(),
+                            subtitle: 'experience_stat'.tr(),
                           ),
                           const SizedBox(width: 12),
                           _buildStatCard(
@@ -416,7 +417,7 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
                             iconColor: const Color(0xFF10B981),
                             bgColor: const Color(0xFFECFDF5),
                             title: lawyer.wilaya ?? '-',
-                            subtitle: 'Wilaya',
+                            subtitle: 'wilaya_stat'.tr(),
                           ),
                         ],
                       ),
@@ -425,7 +426,7 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
 
                       // Bio Section
                       if (lawyer.bio != null && lawyer.bio!.isNotEmpty) ...[
-                        _buildSectionTitle('À propos de l\'avocat'),
+                        _buildSectionTitle('about_lawyer_section'.tr()),
                         const SizedBox(height: 16),
                         Text(
                           lawyer.bio!,
@@ -435,7 +436,7 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
                       ],
 
                       // Contact Info Section
-                      _buildSectionTitle('Coordonnées'),
+                      _buildSectionTitle('coordinates_section'.tr()),
                       const SizedBox(height: 16),
                       Container(
                         decoration: BoxDecoration(
@@ -449,13 +450,13 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
                         child: Column(
                           children: [
                             if (lawyer.email.isNotEmpty)
-                              _buildInfoTile(Icons.alternate_email_rounded, 'Email', lawyer.email),
+                              _buildInfoTile(Icons.alternate_email_rounded, 'email_address'.tr(), lawyer.email),
                             if (lawyer.phone != null)
-                              _buildInfoTile(Icons.phone_rounded, 'Téléphone', lawyer.phone!),
+                              _buildInfoTile(Icons.phone_rounded, 'phone_label'.tr(), lawyer.phone!),
                             if (lawyer.wilaya != null)
                               _buildInfoTile(
                                 Icons.map_rounded,
-                                'Adresse',
+                                'address'.tr(),
                                 [lawyer.wilaya, lawyer.daira, lawyer.commune].where((s) => s != null && s.isNotEmpty).join(', '),
                               ),
                             if (lawyer.locationUrl != null && lawyer.locationUrl!.isNotEmpty)
@@ -467,7 +468,7 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
                       const SizedBox(height: 32),
 
                       // Rating Section
-                      _buildSectionTitle('Évaluer cet avocat'),
+                      _buildSectionTitle('rate_lawyer_section'.tr()),
                       const SizedBox(height: 16),
                       _ratingCard(),
                       const SizedBox(height: 40),
@@ -582,8 +583,8 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
               child: const Icon(Icons.map_rounded, size: 18, color: _primary),
             ),
             const SizedBox(width: 16),
-            const Expanded(
-              child: Text('Voir sur la carte', style: TextStyle(fontSize: 14, color: _primary, fontWeight: FontWeight.w800)),
+            Expanded(
+              child: Text('view_on_map'.tr(), style: const TextStyle(fontSize: 14, color: _primary, fontWeight: FontWeight.w800)),
             ),
             const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: _primary),
           ],
@@ -617,11 +618,11 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Vous avez donné ${_userRating.toStringAsFixed(1)} étoiles',
+              'you_gave_rating'.tr(namedArgs: {'rating': _userRating.toStringAsFixed(1)}),
               style: const TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.w800, fontSize: 16),
             ),
             const SizedBox(height: 16),
-            const Text('Modifier votre évaluation', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13, fontWeight: FontWeight.w600)),
+            Text('edit_rating'.tr(), style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13, fontWeight: FontWeight.w600)),
             const SizedBox(height: 12),
           ] else ...[
             Container(
@@ -630,14 +631,14 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
               child: const Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 32),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Partagez votre expérience',
-              style: TextStyle(color: Color(0xFF1E293B), fontSize: 16, fontWeight: FontWeight.w800),
+            Text(
+              'share_experience'.tr(),
+              style: const TextStyle(color: Color(0xFF1E293B), fontSize: 16, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Aidez les autres à choisir le bon avocat',
-              style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+            Text(
+              'help_others_choose'.tr(),
+              style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
             ),
             const SizedBox(height: 20),
           ],

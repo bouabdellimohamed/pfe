@@ -1,5 +1,7 @@
 import 'dart:ui';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
@@ -17,7 +19,7 @@ class _LawyerRequestsScreenState extends State<LawyerRequestsScreen>
   late TabController _tabs;
   final _auth = AuthService();
   final _uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-  List<String> _mySpecialities = []; // ✅ تخصصات المحامي الحالي
+  List<String> _mySpecialities = [];
 
   static const _gold = Color(0xFFC9A84C);
   static const _goldLight = Color(0xFFE2C47A);
@@ -30,7 +32,6 @@ class _LawyerRequestsScreenState extends State<LawyerRequestsScreen>
   }
 
   Future<void> _loadMySpecialities() async {
-    // ✅ جلب تخصصات المحامي من Firestore
     final profile = await _auth.getLawyerProfile(_uid);
     if (profile != null && mounted) {
       setState(() {
@@ -63,7 +64,7 @@ class _LawyerRequestsScreenState extends State<LawyerRequestsScreen>
             child: Container(color: Colors.black.withOpacity(0.3)),
           ),
         ),
-        title: Text('Publications & Consultations',
+        title: Text('publications_and_consultations'.tr(),
             style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
         bottom: TabBar(
           controller: _tabs,
@@ -73,9 +74,9 @@ class _LawyerRequestsScreenState extends State<LawyerRequestsScreen>
           indicatorWeight: 3,
           labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13),
           unselectedLabelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w400, fontSize: 13),
-          tabs: const [
-            Tab(icon: Icon(Icons.inbox_outlined, size: 22), text: 'Publications'),
-            Tab(icon: Icon(Icons.chat_bubble_outline, size: 22), text: 'Consultations'),
+          tabs: [
+            Tab(icon: Icon(Icons.inbox_outlined, size: 22), text: 'publications'.tr()),
+            Tab(icon: Icon(Icons.chat_bubble_outline, size: 22), text: 'consultations_stat'.tr()),
           ],
         ),
       ),
@@ -101,9 +102,6 @@ class _LawyerRequestsScreenState extends State<LawyerRequestsScreen>
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// ONGLET 1 : Publications (Requests)
-// ═══════════════════════════════════════════════════════════════
 class _RequestsTab extends StatelessWidget {
   final String uid;
   final AuthService auth;
@@ -133,7 +131,7 @@ class _RequestsTab extends StatelessWidget {
           return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
             const Icon(Icons.inbox_outlined, size: 56, color: Colors.white54),
             const SizedBox(height: 14),
-            Text('Aucune publication disponible',
+            Text('no_publications'.tr(),
                 style: GoogleFonts.poppins(color: Colors.white54, fontSize: 15)),
           ]));
         }
@@ -200,7 +198,7 @@ class _RequestCardState extends State<_RequestCard> {
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: _gold.withOpacity(0.3)),
                 ),
-                child: Text(r.type, style: GoogleFonts.poppins(color: _goldLight, fontSize: 11, fontWeight: FontWeight.w500)),
+                child: Text(r.type.tr(), style: GoogleFonts.poppins(color: _goldLight, fontSize: 11, fontWeight: FontWeight.w500)),
               ),
               const Spacer(),
               const Icon(Icons.person_outline_rounded, size: 14, color: Colors.white54),
@@ -209,10 +207,88 @@ class _RequestCardState extends State<_RequestCard> {
                   style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12)),
             ]),
             const SizedBox(height: 12),
-            Text(r.description,
-                maxLines: _expanded ? null : 2,
-                overflow: _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(color: Colors.white.withOpacity(0.85), fontSize: 13, height: 1.5)),
+            Text(
+              r.description,
+              maxLines: _expanded ? null : 2,
+              overflow: _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
+              style: GoogleFonts.poppins(color: Colors.white.withOpacity(0.85), fontSize: 13, height: 1.5),
+            ),
+            
+            if (r.attachedFileName != null && r.attachedFileBase64 != null) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withOpacity(0.1)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: _gold.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: (['jpg', 'jpeg', 'png'].contains(r.attachedFileName!.split('.').last.toLowerCase()))
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.memory(base64Decode(r.attachedFileBase64!), fit: BoxFit.cover),
+                            )
+                          : const Icon(Icons.insert_drive_file_rounded, color: _gold, size: 24),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            r.attachedFileName!,
+                            style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text('attachment'.tr(), style: GoogleFonts.poppins(color: Colors.white54, fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                    if (['jpg', 'jpeg', 'png'].contains(r.attachedFileName!.split('.').last.toLowerCase()))
+                      IconButton(
+                        icon: const Icon(Icons.fullscreen_rounded, color: _gold),
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => Dialog(
+                              backgroundColor: Colors.transparent,
+                              child: Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Image.memory(base64Decode(r.attachedFileBase64!)),
+                                  ),
+                                  Positioned(
+                                    right: 10, top: 10,
+                                    child: CircleAvatar(
+                                      backgroundColor: Colors.black54,
+                                      child: IconButton(
+                                        icon: const Icon(Icons.close, color: Colors.white),
+                                        onPressed: () => Navigator.pop(ctx),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                  ],
+                ),
+              ),
+            ],
+
             if (_expanded) ...[
               const SizedBox(height: 16),
               SizedBox(
@@ -223,8 +299,8 @@ class _RequestCardState extends State<_RequestCard> {
                     _openingChat ? Icons.hourglass_bottom_rounded
                         : _responded ? Icons.check_circle_rounded : Icons.reply_rounded,
                     size: 18),
-                  label: Text(_openingChat ? 'Ouverture...'
-                      : _responded ? 'Continuer le chat' : 'Répondre',
+                  label: Text(_openingChat ? 'opening'.tr()
+                      : _responded ? 'continue_chat'.tr() : 'reply'.tr(),
                       style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _responded ? const Color(0xFF4CAF50) : _gold,
@@ -240,7 +316,7 @@ class _RequestCardState extends State<_RequestCard> {
             Row(children: [
               const Icon(Icons.people_outline_rounded, size: 14, color: Colors.white54),
               const SizedBox(width: 4),
-              Text('${r.respondedLawyerIds.length} réponse(s)',
+              Text('responses_count'.tr(namedArgs: {'count': r.respondedLawyerIds.length.toString()}),
                   style: GoogleFonts.poppins(color: Colors.white54, fontSize: 12)),
             ]),
           ]),
@@ -277,9 +353,6 @@ class _RequestCardState extends State<_RequestCard> {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// ONGLET 2 : Consultations
-// ═══════════════════════════════════════════════════════════════
 class _ConsultationsTab extends StatelessWidget {
   final String uid;
   final AuthService auth;
@@ -300,7 +373,7 @@ class _ConsultationsTab extends StatelessWidget {
           return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
             const Icon(Icons.chat_bubble_outline, size: 56, color: Colors.white54),
             const SizedBox(height: 14),
-            Text('Aucune consultation',
+            Text('no_consultations'.tr(),
                 style: GoogleFonts.poppins(color: Colors.white54, fontSize: 15)),
           ]));
         }
@@ -350,8 +423,8 @@ class _ConsultCardState extends State<_ConsultCard> {
       if (mounted) {
         setState(() => _showReply = false);
         _answerCtrl.clear();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Réponse envoyée !'), backgroundColor: Color(0xFF4CAF50)));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('response_sent'.tr()), backgroundColor: Color(0xFF4CAF50)));
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(
@@ -365,7 +438,7 @@ class _ConsultCardState extends State<_ConsultCard> {
   Widget build(BuildContext context) {
     final c = widget.c;
     final answered = c.status == 'answered';
-    final name = c.userFullName.trim().isNotEmpty ? c.userFullName : 'Utilisateur';
+    final name = c.userFullName.trim().isNotEmpty ? c.userFullName : 'user'.tr();
 
     return Container(
       decoration: BoxDecoration(
@@ -388,7 +461,7 @@ class _ConsultCardState extends State<_ConsultCard> {
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(name, style: GoogleFonts.outfit(
                 fontWeight: FontWeight.w600, fontSize: 15, color: Colors.white)),
-            Text(c.type, style: GoogleFonts.poppins(color: _goldLight, fontSize: 12)),
+            Text(c.type.tr(), style: GoogleFonts.poppins(color: _goldLight, fontSize: 12)),
           ])),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -397,7 +470,7 @@ class _ConsultCardState extends State<_ConsultCard> {
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: answered ? const Color(0xFF4CAF50).withOpacity(0.3) : const Color(0xFFFF9800).withOpacity(0.3)),
             ),
-            child: Text(answered ? 'Répondu' : 'En attente',
+            child: Text(answered ? 'answered'.tr() : 'pending'.tr(),
                 style: GoogleFonts.poppins(
                   color: answered ? const Color(0xFF4CAF50) : const Color(0xFFFF9800),
                   fontSize: 11, fontWeight: FontWeight.w600)),
@@ -410,6 +483,68 @@ class _ConsultCardState extends State<_ConsultCard> {
           child: Text(c.question,
               style: GoogleFonts.poppins(color: Colors.white.withOpacity(0.85), fontSize: 13, height: 1.5)),
         ),
+        
+        if (c.attachedFileName != null && c.attachedFileBase64 != null) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withOpacity(0.1)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 38, height: 38,
+                  decoration: BoxDecoration(color: _gold.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                  child: (['jpg', 'jpeg', 'png'].contains(c.attachedFileName!.split('.').last.toLowerCase()))
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.memory(base64Decode(c.attachedFileBase64!), fit: BoxFit.cover),
+                        )
+                      : const Icon(Icons.insert_drive_file_rounded, color: _gold, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(c.attachedFileName!,
+                      style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                ),
+                if (['jpg', 'jpeg', 'png'].contains(c.attachedFileName!.split('.').last.toLowerCase()))
+                  IconButton(
+                    icon: const Icon(Icons.fullscreen_rounded, color: _gold, size: 20),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => Dialog(
+                          backgroundColor: Colors.transparent,
+                          child: Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Image.memory(base64Decode(c.attachedFileBase64!)),
+                              ),
+                              Positioned(
+                                right: 10, top: 10,
+                                child: CircleAvatar(
+                                  backgroundColor: Colors.black54,
+                                  child: IconButton(
+                                    icon: const Icon(Icons.close, color: Colors.white),
+                                    onPressed: () => Navigator.pop(ctx),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+              ],
+            ),
+          ),
+        ],
         if (answered && c.answer != null) ...[
           const SizedBox(height: 12),
           Container(
@@ -419,7 +554,10 @@ class _ConsultCardState extends State<_ConsultCard> {
               border: Border.all(color: const Color(0xFF4CAF50).withOpacity(0.3)),
             ),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Votre réponse :',
+              Text(
+                  c.lawyerId == widget.lawyerId 
+                      ? 'your_answer'.tr() 
+                      : 'lawyer_answer'.tr(namedArgs: {'name': c.lawyerName ?? 'Maître'}),
                   style: GoogleFonts.poppins(color: const Color(0xFF4CAF50), fontSize: 12, fontWeight: FontWeight.w600)),
               const SizedBox(height: 6),
               Text(c.answer!, style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, height: 1.5)),
@@ -433,7 +571,7 @@ class _ConsultCardState extends State<_ConsultCard> {
               controller: _answerCtrl, maxLines: 4,
               style: GoogleFonts.poppins(color: Colors.white, fontSize: 14),
               decoration: InputDecoration(
-                hintText: 'Rédigez votre réponse juridique...',
+                hintText: 'write_legal_answer'.tr(),
                 hintStyle: GoogleFonts.poppins(color: Colors.white54, fontSize: 13),
                 filled: true, fillColor: Colors.black.withOpacity(0.2),
                 contentPadding: const EdgeInsets.all(14),
@@ -454,7 +592,7 @@ class _ConsultCardState extends State<_ConsultCard> {
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-                child: Text('Annuler', style: GoogleFonts.poppins()),
+                child: Text('cancel'.tr(), style: GoogleFonts.poppins()),
               )),
               const SizedBox(width: 12),
               Expanded(child: ElevatedButton(
@@ -470,7 +608,7 @@ class _ConsultCardState extends State<_ConsultCard> {
                     ? const SizedBox(width: 18, height: 18,
                         child: CircularProgressIndicator(strokeWidth: 2,
                             valueColor: AlwaysStoppedAnimation(Colors.black87)))
-                    : Text('Envoyer', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                    : Text('send'.tr(), style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
               )),
             ]),
           ] else SizedBox(
@@ -478,7 +616,7 @@ class _ConsultCardState extends State<_ConsultCard> {
             child: ElevatedButton.icon(
               onPressed: () => setState(() => _showReply = true),
               icon: const Icon(Icons.reply_rounded, size: 18),
-              label: Text('Répondre', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+              label: Text('reply'.tr(), style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _gold, foregroundColor: Colors.black87,
                 elevation: 4,

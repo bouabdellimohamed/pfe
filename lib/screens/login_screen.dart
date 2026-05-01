@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../services/auth_service.dart';
 
 class UserSignUpScreen extends StatefulWidget {
@@ -39,20 +40,20 @@ class _UserSignUpScreenState extends State<UserSignUpScreen> {
     final confirm = _confirmCtrl.text;
 
     if (name.isEmpty || email.isEmpty || pass.isEmpty) {
-      setState(() => _error = 'Veuillez remplir tous les champs obligatoires');
+      setState(() => _error = 'fill_all_fields'.tr());
       return;
     }
     if (pass != confirm) {
-      setState(() => _error = 'Les mots de passe ne correspondent pas');
+      setState(() => _error = 'passwords_dont_match'.tr());
       return;
     }
     if (pass.length < 8) {
-      setState(() => _error = 'Mot de passe trop court (min 8 caractères)');
+      setState(() => _error = 'password_too_short'.tr());
       return;
     }
     final phone = _phoneCtrl.text.trim();
     if (phone.isNotEmpty && !RegExp(r'^0[567]\d{8}$').hasMatch(phone)) {
-      setState(() => _error = 'Numéro invalide (ex: 0555123456)');
+      setState(() => _error = 'invalid_phone'.tr());
       return;
     }
 
@@ -82,17 +83,17 @@ class _UserSignUpScreenState extends State<UserSignUpScreen> {
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Row(children: [
+          title: Row(children: [
             Icon(Icons.mark_email_read_outlined, color: Color(0xFF0052D4)),
             SizedBox(width: 10),
-            Expanded(child: Text('Compte créé !', style: TextStyle(fontWeight: FontWeight.w700))),
+            Expanded(child: Text('account_created_title'.tr(), style: TextStyle(fontWeight: FontWeight.w700))),
           ]),
-          content: const Text(
-            'Un lien de vérification a été envoyé à votre adresse email.\n'
-            '(Vérifiez vos courriers indésirables / Spam)\n\n'
-            'Veuillez cliquer sur ce lien pour activer votre compte, puis connectez-vous.',
-            style: TextStyle(height: 1.5),
-          ),
+          content: Text(
+              'verification_link_sent'.tr() + '\n' +
+              'check_spam'.tr() + '\n\n' +
+              'activate_account_msg'.tr(),
+              style: const TextStyle(height: 1.5),
+            ),
           actions: [
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx),
@@ -100,7 +101,7 @@ class _UserSignUpScreenState extends State<UserSignUpScreen> {
                 backgroundColor: const Color(0xFF0052D4),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
-              child: const Text('Compris', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+              child: Text('understood'.tr(), style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
             ),
           ],
         ),
@@ -163,18 +164,18 @@ class _UserSignUpScreenState extends State<UserSignUpScreen> {
                         onPressed: () => Navigator.pop(context),
                       ),
                       const SizedBox(width: 8),
-                      const Text(
-                        'Inscription',
+                      Text(
+                        'user_signup'.tr(),
                         style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Padding(
+                Padding(
                   padding: EdgeInsets.symmetric(horizontal: 32),
                   child: Text(
-                    'Rejoignez JurisDZ\net trouvez votre avocat',
+                    'join_jurisdz'.tr(),
                     style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, height: 1.2, letterSpacing: -0.5),
                   ),
                 ),
@@ -192,19 +193,19 @@ class _UserSignUpScreenState extends State<UserSignUpScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Vos informations', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1E293B))),
+                          Text('your_info'.tr(), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Color(0xFF1E293B))),
                           const SizedBox(height: 24),
-                          _field(_nameCtrl, 'Nom complet *', Icons.person_outline_rounded),
+                          _field(_nameCtrl, 'full_name'.tr(), Icons.person_outline_rounded),
                           const SizedBox(height: 16),
-                          _field(_ageCtrl, 'Âge *', Icons.cake_outlined, type: TextInputType.number),
+                          _field(_ageCtrl, 'age'.tr(), Icons.cake_outlined, type: TextInputType.number),
                           const SizedBox(height: 16),
                           _field(_emailCtrl, 'Email *', Icons.alternate_email_rounded, type: TextInputType.emailAddress),
                           const SizedBox(height: 16),
-                          _field(_phoneCtrl, 'Téléphone (optionnel)', Icons.phone_rounded, type: TextInputType.phone),
+                          _field(_phoneCtrl, 'phone_opt'.tr(), Icons.phone_rounded, type: TextInputType.phone),
                           const SizedBox(height: 16),
                           _field(
                             _passCtrl,
-                            'Mot de passe *',
+                            'password'.tr() + ' *',
                             Icons.lock_outline_rounded,
                             obscure: _obscure,
                             suffix: IconButton(
@@ -213,7 +214,7 @@ class _UserSignUpScreenState extends State<UserSignUpScreen> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          _field(_confirmCtrl, 'Confirmer le mot de passe *', Icons.lock_outline_rounded, obscure: true),
+                          _field(_confirmCtrl, 'confirm_password'.tr(), Icons.lock_outline_rounded, obscure: true),
                           
                           if (_error.isNotEmpty) ...[
                             const SizedBox(height: 20),
@@ -243,17 +244,17 @@ class _UserSignUpScreenState extends State<UserSignUpScreen> {
                               ),
                               child: _loading
                                   ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                                  : const Text("S'INSCRIRE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1)),
+                                  : Text("signup_btn".tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1)),
                             ),
                           ),
                           const SizedBox(height: 24),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text('Déjà un compte ? ', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+                              Text('already_have_account'.tr() + ' ', style: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
                               GestureDetector(
                                 onTap: () => _showUserLogin(context),
-                                child: const Text('Se connecter', style: TextStyle(color: primaryBlue, fontWeight: FontWeight.w800)),
+                                child: Text('login'.tr(), style: const TextStyle(color: primaryBlue, fontWeight: FontWeight.w800)),
                               ),
                             ],
                           ),
@@ -308,13 +309,13 @@ class _UserSignUpScreenState extends State<UserSignUpScreen> {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  const Text('Connexion', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF1E293B))),
+                  Text('login'.tr(), style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF1E293B))),
                   const SizedBox(height: 8),
-                  const Text('Ravi de vous revoir !', style: TextStyle(color: Color(0xFF64748B), fontSize: 15)),
+                  Text('glad_to_see_you'.tr(), style: const TextStyle(color: Color(0xFF64748B), fontSize: 15)),
                   const SizedBox(height: 32),
-                  _field(emailCtrl, 'Email', Icons.alternate_email_rounded, type: TextInputType.emailAddress),
+                  _field(emailCtrl, 'email_address'.tr(), Icons.alternate_email_rounded, type: TextInputType.emailAddress),
                   const SizedBox(height: 16),
-                  _field(passCtrl, 'Mot de passe', Icons.lock_outline_rounded, obscure: true),
+                  _field(passCtrl, 'password'.tr(), Icons.lock_outline_rounded, obscure: true),
                   
                   if (error.isNotEmpty) ...[
                     const SizedBox(height: 16),
@@ -341,7 +342,7 @@ class _UserSignUpScreenState extends State<UserSignUpScreen> {
                                       });
                                     },
                                     style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 0), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                                    child: const Text('Renvoyer le lien', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: primaryBlue)),
+                                    child: Text('resend_link'.tr(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: primaryBlue)),
                                   ),
                               ],
                             ),
@@ -382,7 +383,7 @@ class _UserSignUpScreenState extends State<UserSignUpScreen> {
                       ),
                       child: loading
                           ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                          : const Text('SE CONNECTER', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1)),
+                          : Text('login_btn'.tr(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 1)),
                     ),
                   ),
                 ],

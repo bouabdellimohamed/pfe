@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import '../models/lawyer_model.dart';
 import '../widgets/profile_avatar.dart';
@@ -28,12 +29,12 @@ class LawyersResultScreen extends StatelessWidget {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "Experts Disponibles",
-              style: TextStyle(color: Color(0xFF263238), fontSize: 20, fontWeight: FontWeight.w900),
+            Text(
+              "available_experts".tr(),
+              style: const TextStyle(color: Color(0xFF263238), fontSize: 20, fontWeight: FontWeight.w900),
             ),
             Text(
-              "$speciality • $wilaya",
+              "${speciality.tr()} • ${wilaya?.tr() ?? ''}",
               style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500),
             ),
           ],
@@ -50,7 +51,7 @@ class LawyersResultScreen extends StatelessWidget {
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
-                child: Text('Erreur: ${snap.error}', textAlign: TextAlign.center),
+                child: Text('error'.tr() + ': ${snap.error}', textAlign: TextAlign.center),
               ),
             );
           }
@@ -86,12 +87,12 @@ class LawyersResultScreen extends StatelessWidget {
                     Icon(Icons.search_off_rounded, size: 64, color: Colors.grey[300]),
                     const SizedBox(height: 16),
                     Text(
-                      'Aucun avocat trouvé',
+                      'no_lawyer_found_title'.tr(),
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey[600]),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Pas encore d\'avocats enregistrés\npour "$speciality" à $wilaya.',
+                      'no_lawyer_found_desc'.tr(namedArgs: {'speciality': speciality.tr(), 'wilaya': wilaya?.tr() ?? ''}),
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.grey[400], fontSize: 14),
                     ),
@@ -188,7 +189,7 @@ class LawyersResultScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            s.trim(),
+                            s.trim().tr(),
                             style: const TextStyle(color: primaryBlue, fontSize: 11, fontWeight: FontWeight.w600),
                           ),
                         )).toList(),
@@ -199,12 +200,12 @@ class LawyersResultScreen extends StatelessWidget {
                           const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
                           const SizedBox(width: 3),
                           Text(
-                            lawyer.rating > 0 ? lawyer.rating.toStringAsFixed(1) : "Nouveau",
+                            lawyer.rating > 0 ? lawyer.rating.toStringAsFixed(1) : "new_lawyer".tr(),
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                           ),
                           if (lawyer.reviewCount > 0)
                             Text(
-                              " (${lawyer.reviewCount} avis)",
+                              " (${lawyer.reviewCount} " + "avis".tr() + ")",
                               style: const TextStyle(color: Colors.grey, fontSize: 12),
                             ),
                         ],
@@ -217,31 +218,47 @@ class LawyersResultScreen extends StatelessWidget {
             const SizedBox(height: 18),
             Row(
               children: [
-                _buildInfoTag(Icons.work_history_outlined, "${lawyer.experience ?? 0} ans"),
+                Flexible(
+                  child: _buildInfoTag(Icons.work_history_outlined,
+                      "${lawyer.experience ?? 0} " + "years_suffix".tr()),
+                ),
                 const SizedBox(width: 8),
-                _buildInfoTag(Icons.location_on_outlined, lawyer.wilaya ?? '-'),
+                Flexible(
+                  child: _buildInfoTag(
+                      Icons.location_on_outlined, lawyer.wilaya?.tr() ?? '-'),
+                ),
                 const Spacer(),
                 // ✅ زر الملف الشخصي يفتح LawyerProfileScreen
                 GestureDetector(
                   onTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => LawyerProfileScreen(lawyer: lawyer)),
+                    MaterialPageRoute(
+                        builder: (_) => LawyerProfileScreen(lawyer: lawyer)),
                   ),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 11),
                     decoration: BoxDecoration(
                       color: primaryBlue,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
-                        BoxShadow(color: primaryBlue.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4)),
+                        BoxShadow(
+                            color: primaryBlue.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4)),
                       ],
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Text("Voir profil", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                        SizedBox(width: 6),
-                        Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 16),
+                      children: [
+                        Text("view_profile_btn".tr(),
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 6),
+                        const Icon(Icons.arrow_forward_rounded,
+                            color: Colors.white, size: 16),
                       ],
                     ),
                   ),
@@ -257,13 +274,25 @@ class LawyersResultScreen extends StatelessWidget {
   Widget _buildInfoTag(IconData icon, String text) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(color: const Color(0xFFF8F9FA), borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+          color: const Color(0xFFF8F9FA),
+          borderRadius: BorderRadius.circular(12)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 14, color: Colors.blueGrey),
           const SizedBox(width: 5),
-          Text(text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.blueGrey)),
+          Flexible(
+            child: Text(
+              text,
+              style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.blueGrey),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ],
       ),
     );

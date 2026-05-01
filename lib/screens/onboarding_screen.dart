@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
@@ -20,36 +21,33 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
 
-  static const _pages = [
+  List<_OnboardingData> get _pages => [
     _OnboardingData(
       icon: Icons.balance_rounded,
-      gradient: [Color(0xFF1A56DB), Color(0xFF3B82F6)],
-      bgColor: Color(0xFFEFF6FF),
-      title: 'Trouvez l\'avocat idéal',
-      subtitle:
-          'Accédez à une plateforme complète d\'avocats algériens qualifiés, classés par spécialité, wilaya et score de performance.',
-      badge: 'Pour les Utilisateurs',
-      badgeColor: Color(0xFF1A56DB),
+      gradient: const [Color(0xFF1A56DB), Color(0xFF3B82F6)],
+      bgColor: const Color(0xFFEFF6FF),
+      title: 'onboarding_title_1'.tr(),
+      subtitle: 'onboarding_subtitle_1'.tr(),
+      badge: 'onboarding_badge_1'.tr(),
+      badgeColor: const Color(0xFF1A56DB),
     ),
     _OnboardingData(
       icon: Icons.psychology_rounded,
-      gradient: [Color(0xFF0F766E), Color(0xFF14B8A6)],
-      bgColor: Color(0xFFF0FDFA),
-      title: 'Intelligence Artificielle',
-      subtitle:
-          'Décrivez votre problème juridique, et notre IA Gemini identifie automatiquement la spécialité et vous recommande les meilleurs avocats.',
-      badge: 'Propulsé par Gemini AI',
-      badgeColor: Color(0xFF0F766E),
+      gradient: const [Color(0xFF0F766E), Color(0xFF14B8A6)],
+      bgColor: const Color(0xFFF0FDFA),
+      title: 'onboarding_title_2'.tr(),
+      subtitle: 'onboarding_subtitle_2'.tr(),
+      badge: 'onboarding_badge_2'.tr(),
+      badgeColor: const Color(0xFF0F766E),
     ),
     _OnboardingData(
       icon: Icons.gavel_rounded,
-      gradient: [Color(0xFFC9A84C), Color(0xFFE2C47A)],
-      bgColor: Color(0xFFFEF9EC),
-      title: 'Espace Avocat Complet',
-      subtitle:
-          'Gérez votre profil, répondez aux consultations, traitez les demandes de vos clients et suivez vos statistiques en temps réel.',
-      badge: 'Pour les Avocats',
-      badgeColor: Color(0xFFC9A84C),
+      gradient: const [Color(0xFFC9A84C), Color(0xFFE2C47A)],
+      bgColor: const Color(0xFFFEF9EC),
+      title: 'onboarding_title_3'.tr(),
+      subtitle: 'onboarding_subtitle_3'.tr(),
+      badge: 'onboarding_badge_3'.tr(),
+      badgeColor: const Color(0xFFC9A84C),
     ),
   ];
 
@@ -120,7 +118,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 child: TextButton(
                   onPressed: _finish,
                   child: Text(
-                    'Passer',
+                    'onboarding_skip'.tr(),
                     style: GoogleFonts.poppins(
                       color: AppColors.grey500,
                       fontSize: 14,
@@ -192,8 +190,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       children: [
                         Text(
                           _currentPage < _pages.length - 1
-                              ? 'Suivant'
-                              : 'Commencer',
+                              ? 'onboarding_next'.tr()
+                              : 'onboarding_start'.tr(),
                           style: GoogleFonts.poppins(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'post_request_screen.dart';
 import 'direct_search_screen.dart';
 import 'ai_assistant_screen.dart' show AIAssistantScreen;
@@ -48,40 +49,40 @@ class ChooseMethodScreen extends StatelessWidget {
                 child: const Icon(Icons.balance_rounded, color: _gold, size: 32),
               ),
               const SizedBox(height: 14),
-              const Text('Comment puis-je vous aider ?',
-                  style: TextStyle(color: Colors.white, fontSize: 22,
+              Text('how_can_i_help'.tr(),
+                  style: const TextStyle(color: Colors.white, fontSize: 22,
                       fontWeight: FontWeight.w900), textAlign: TextAlign.center),
               const SizedBox(height: 6),
-              Text('Choisissez la méthode qui vous convient',
+              Text('choose_method'.tr(),
                   style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
                   textAlign: TextAlign.center),
             ]),
           ),
           const SizedBox(height: 28),
 
-          _OptionCard(icon: Icons.search_rounded, title: 'Je connais mon affaire',
-              subtitle: 'Sélectionnez directement votre domaine juridique',
+          _OptionCard(icon: Icons.search_rounded, title: 'i_know_my_case'.tr(),
+              subtitle: 'select_legal_domain'.tr(),
               color: const Color(0xFF1565C0),
               onTap: () => Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const DirectSearchScreen()))),
           const SizedBox(height: 14),
 
-          _OptionCard(icon: Icons.quiz_rounded, title: 'Questionnaire guidé',
-              subtitle: 'Répondez à quelques questions pour identifier votre cas',
+          _OptionCard(icon: Icons.quiz_rounded, title: 'guided_questionnaire'.tr(),
+              subtitle: 'answer_questions'.tr(),
               color: const Color(0xFF6B46C1), badge: 'SMART',
               onTap: () => Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const _QuestionnaireScreen()))),
           const SizedBox(height: 14),
 
-          _OptionCard(icon: Icons.auto_awesome_rounded, title: 'Assistant IA',
-              subtitle: 'Décrivez librement votre situation en texte',
+          _OptionCard(icon: Icons.auto_awesome_rounded, title: 'ai_assistant'.tr(),
+              subtitle: 'describe_freely'.tr(),
               color: const Color(0xFF7C3AED), badge: 'IA',
               onTap: () => Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const AIAssistantScreen()))),
           const SizedBox(height: 14),
 
-          _OptionCard(icon: Icons.mail_outline_rounded, title: 'Publier une demande',
-              subtitle: 'Les avocats vous contactent directement',
+          _OptionCard(icon: Icons.mail_outline_rounded, title: 'post_request'.tr(),
+              subtitle: 'lawyers_contact_you'.tr(),
               color: const Color(0xFF0D7C66),
               onTap: () => Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const PostRequestScreen()))),
@@ -168,8 +169,8 @@ class _QOption {
 
 const List<_QNode> _tree = [
   _QNode(id: 'root',
-    question: 'Quel est le domaine principal de votre problème ?',
-    subtitle: 'Choisissez la catégorie la plus proche de votre situation',
+    question: 'q_main_domain_title',
+    subtitle: 'q_main_domain_subtitle',
     options: [
       _QOption(label: 'Famille & Personnes',         emoji: '👨‍👩‍👧', nextId: 'famille'),
       _QOption(label: 'Travail & Emploi',             emoji: '💼', nextId: 'travail'),
@@ -181,7 +182,7 @@ const List<_QNode> _tree = [
     ]),
 
   _QNode(id: 'famille',
-    question: 'Quel est votre problème familial ?',
+    question: 'q_famille_title',
     options: [
       _QOption(label: 'Divorce ou séparation',             emoji: '💔', result: 'Droit familial'),
       _QOption(label: 'Garde des enfants / Pension',       emoji: '👶', result: 'Droit familial'),
@@ -192,7 +193,7 @@ const List<_QNode> _tree = [
     ]),
 
   _QNode(id: 'travail',
-    question: 'Quel est votre problème lié au travail ?',
+    question: 'q_travail_title',
     options: [
       _QOption(label: 'Licenciement abusif / injustifié',  emoji: '🔴', result: 'Droit du travail'),
       _QOption(label: 'Salaire impayé / retard',           emoji: '💰', result: 'Droit du travail'),
@@ -203,7 +204,7 @@ const List<_QNode> _tree = [
     ]),
 
   _QNode(id: 'immo',
-    question: 'Quel est votre problème immobilier ?',
+    question: 'q_immo_title',
     options: [
       _QOption(label: "Achat / Vente d'un bien",          emoji: '🏡', result: 'Droit immobilier'),
       _QOption(label: 'Location / Bail / Expulsion',       emoji: '🔑', result: 'Droit immobilier'),
@@ -214,7 +215,7 @@ const List<_QNode> _tree = [
     ]),
 
   _QNode(id: 'business',
-    question: 'Quel est votre problème commercial ?',
+    question: 'q_business_title',
     options: [
       _QOption(label: 'Contrat non respecté',              emoji: '📋', result: 'Droit commercial'),
       _QOption(label: 'Création / Dissolution société',    emoji: '🏭', result: 'Droit des sociétés'),
@@ -225,7 +226,7 @@ const List<_QNode> _tree = [
     ]),
 
   _QNode(id: 'escroquerie',
-    question: "L'arnaque est de quelle nature ?",
+    question: "q_escroquerie_title",
     options: [
       _QOption(label: 'Transaction commerciale',           emoji: '💼', result: 'Droit commercial'),
       _QOption(label: 'Achat en ligne / Fraude',           emoji: '💻', result: 'Droit pénal'),
@@ -234,7 +235,7 @@ const List<_QNode> _tree = [
     ]),
 
   _QNode(id: 'penal',
-    question: 'Quel est votre problème judiciaire ?',
+    question: 'q_penal_title',
     options: [
       _QOption(label: "Je suis victime d'une agression",  emoji: '🚨', result: 'Droit pénal'),
       _QOption(label: 'Je suis accusé / poursuivi',        emoji: '⚖️', result: 'Droit pénal'),
@@ -244,7 +245,7 @@ const List<_QNode> _tree = [
     ]),
 
   _QNode(id: 'admin',
-    question: 'Quel est votre problème administratif ?',
+    question: 'q_admin_title',
     options: [
       _QOption(label: 'Refus de permis / Autorisation',   emoji: '🚫', result: 'Droit administratif'),
       _QOption(label: "Litige avec l'État / Commune",    emoji: '🏛️', result: 'Droit administratif'),
@@ -254,7 +255,7 @@ const List<_QNode> _tree = [
     ]),
 
   _QNode(id: 'autre',
-    question: 'Pouvez-vous préciser votre situation ?',
+    question: 'q_autre_title',
     options: [
       _QOption(label: 'Problème avec une personne',              emoji: '👤', result: 'Droit civil'),
       _QOption(label: 'Problème avec une entreprise',            emoji: '🏢', result: 'Droit commercial'),
@@ -325,7 +326,7 @@ class _QuestionnaireScreenState extends State<_QuestionnaireScreen> {
           onPressed: _goBack,
         ),
         title: Text(
-          _result != null ? 'Résultat' : 'Étape ${_history.length + 1}',
+          _result != null ? 'result'.tr() : '${'step'.tr()} ${_history.length + 1}',
           style: const TextStyle(color: _navy, fontWeight: FontWeight.w800, fontSize: 17),
         ),
       ),
@@ -376,16 +377,16 @@ class _QuestionnaireScreenState extends State<_QuestionnaireScreen> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                _history.isEmpty ? 'Catégorie principale' : 'Précisez',
+                _history.isEmpty ? 'main_category'.tr() : 'specify'.tr(),
                 style: const TextStyle(color: _gold, fontSize: 11, fontWeight: FontWeight.w700),
               ),
             ),
             const SizedBox(height: 10),
-            Text(node.question, style: const TextStyle(color: Colors.white,
+            Text(node.question.tr(), style: const TextStyle(color: Colors.white,
                 fontSize: 18, fontWeight: FontWeight.w800, height: 1.3)),
             if (node.subtitle != null) ...[
               const SizedBox(height: 6),
-              Text(node.subtitle!, style: TextStyle(
+              Text(node.subtitle!.tr(), style: TextStyle(
                   color: Colors.white.withOpacity(0.6), fontSize: 12, height: 1.4)),
             ],
           ]),
@@ -438,10 +439,10 @@ class _QuestionnaireScreenState extends State<_QuestionnaireScreen> {
                   color: _gold, size: 40),
             ),
             const SizedBox(height: 16),
-            const Text('Nous recommandons',
-                style: TextStyle(color: Colors.white60, fontSize: 13)),
+            Text('we_recommend'.tr(),
+                style: const TextStyle(color: Colors.white60, fontSize: 13)),
             const SizedBox(height: 8),
-            Text(recommendation, style: const TextStyle(color: Colors.white,
+            Text(recommendation.tr(), style: const TextStyle(color: Colors.white,
                 fontSize: 22, fontWeight: FontWeight.w900),
                 textAlign: TextAlign.center),
             const SizedBox(height: 12),
@@ -452,8 +453,8 @@ class _QuestionnaireScreenState extends State<_QuestionnaireScreen> {
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: _gold.withOpacity(0.3)),
               ),
-              child: const Text('Basé sur vos réponses',
-                  style: TextStyle(color: _gold, fontSize: 11, fontWeight: FontWeight.w600)),
+              child: Text('based_on_answers'.tr(),
+                  style: const TextStyle(color: _gold, fontSize: 11, fontWeight: FontWeight.w600)),
             ),
           ]),
         ),
@@ -467,7 +468,7 @@ class _QuestionnaireScreenState extends State<_QuestionnaireScreen> {
             const Icon(Icons.info_outline_rounded, color: _gold, size: 20),
             const SizedBox(width: 12),
             Expanded(child: Text(
-              'Notre système a analysé vos réponses et identifié le domaine juridique le plus adapté.',
+              'system_analysis'.tr(),
               style: TextStyle(color: _grey, fontSize: 12, height: 1.4),
             )),
           ]),
@@ -482,8 +483,8 @@ class _QuestionnaireScreenState extends State<_QuestionnaireScreen> {
                   builder: (_) => DirectSearchScreen(preselectedSpeciality: recommendation)));
             },
             icon: const Icon(Icons.search_rounded, size: 20),
-            label: const Text('Chercher un avocat',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            label: Text('search_lawyer'.tr(),
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
             style: ElevatedButton.styleFrom(
               backgroundColor: _gold, foregroundColor: _navy,
               elevation: 4, shadowColor: _gold.withOpacity(0.4),
@@ -499,7 +500,7 @@ class _QuestionnaireScreenState extends State<_QuestionnaireScreen> {
               _history.clear(); _result = null; _current = _findNode('root');
             }),
             icon: const Icon(Icons.refresh_rounded, size: 18),
-            label: const Text('Recommencer', style: TextStyle(fontWeight: FontWeight.w600)),
+            label: Text('restart'.tr(), style: const TextStyle(fontWeight: FontWeight.w600)),
             style: OutlinedButton.styleFrom(
               foregroundColor: _navy,
               side: BorderSide(color: _navy.withOpacity(0.2)),
@@ -544,7 +545,7 @@ class _OptionTile extends StatelessWidget {
             Text(option.emoji!, style: const TextStyle(fontSize: 22)),
             const SizedBox(width: 14),
           ],
-          Expanded(child: Text(option.label, style: TextStyle(
+          Expanded(child: Text(option.label.tr(), style: TextStyle(
               fontSize: 15, fontWeight: FontWeight.w600,
               color: isSelected ? Colors.white : _navy))),
           Icon(

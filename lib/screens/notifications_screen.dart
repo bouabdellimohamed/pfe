@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/notification_service.dart';
 
@@ -22,7 +23,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     await _notificationService.deleteNotification(notificationId);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم حذف الإشعار')),
+        SnackBar(content: Text('notification_deleted'.tr())),
       );
     }
   }
@@ -34,9 +35,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       return Scaffold(
         appBar: AppBar(
           backgroundColor: const Color(0xFF1B2D42),
-          title: const Text(
-            'الإشعارات',
-            style: TextStyle(
+          title: Text(
+            'notifications_title'.tr(),
+            style: const TextStyle(
               color: Color(0xFFF0EDE8),
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -44,16 +45,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
           leading: const BackButton(color: Color(0xFFF0EDE8)),
         ),
-        body: const Center(child: Text('Please login first')),
+        body: Center(child: Text('please_login_first'.tr())),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF1B2D42),
-        title: const Text(
-          'Notifications',
-          style: TextStyle(
+        title: Text(
+          'notifications_title'.tr(),
+          style: const TextStyle(
             color: Color(0xFFF0EDE8),
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -81,7 +82,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'No Notifications',
+                    'no_notifications'.tr(),
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.grey.shade600,
@@ -169,11 +170,11 @@ class _NotificationCard extends StatelessWidget {
                     itemBuilder: (ctx) => [
                       PopupMenuItem(
                         onTap: onDelete,
-                        child: const Row(
+                        child: Row(
                           children: [
-                            Icon(Icons.delete_outline, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('حذف'),
+                            const Icon(Icons.delete_outline, color: Colors.red),
+                            const SizedBox(width: 8),
+                            Text('delete'.tr()),
                           ],
                         ),
                       ),
@@ -210,13 +211,13 @@ class _NotificationCard extends StatelessWidget {
     final difference = now.difference(date);
 
     if (difference.inMinutes < 1) {
-      return 'Just now';
+      return 'just_now'.tr();
     } else if (difference.inHours < 1) {
-      return 'Minutes ago ${difference.inMinutes}';
+      return 'minutes_ago'.tr(namedArgs: {'count': difference.inMinutes.toString()});
     } else if (difference.inDays < 1) {
-      return 'Hours ago ${difference.inHours}';
+      return 'hours_ago'.tr(namedArgs: {'count': difference.inHours.toString()});
     } else if (difference.inDays < 7) {
-      return 'Days ago ${difference.inDays}';
+      return 'days_ago'.tr(namedArgs: {'count': difference.inDays.toString()});
     } else {
       return '${date.day}/${date.month}/${date.year}';
     }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
@@ -204,7 +205,7 @@ class _SplashScreenState extends State<SplashScreen>
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Plateforme Juridique Algérienne',
+                            'splash_subtitle'.tr(),
                             style: GoogleFonts.poppins(
                               fontSize: 14,
                               color: Colors.white.withOpacity(0.8),
@@ -232,7 +233,7 @@ class _SplashScreenState extends State<SplashScreen>
                     const _LoadingDots(),
                     const SizedBox(height: 12),
                     Text(
-                      'Projet de Fin d\'Études 2026',
+                      'graduation_project'.tr(),
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
                         fontSize: 11,

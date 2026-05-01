@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
@@ -74,7 +75,40 @@ class _WelcomeScreenState extends State<WelcomeScreen>
             padding: const EdgeInsets.symmetric(horizontal: 28),
             child: Column(
               children: [
-                const SizedBox(height: 40),
+                const SizedBox(height: 10),
+                // Language Toggle
+                Align(
+                  alignment: Alignment.topRight,
+                  child: Material(
+                    color: Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () {
+                        if (context.locale.languageCode == 'ar') {
+                          context.setLocale(const Locale('fr'));
+                        } else {
+                          context.setLocale(const Locale('ar'));
+                        }
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.language_rounded, color: AppColors.primary, size: 16),
+                            const SizedBox(width: 8),
+                            Text(
+                              context.locale.languageCode == 'ar' ? 'FR' : 'AR',
+                              style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
 
                 // ── Header ─────────────────────────────────────────────────
                 SlideTransition(
@@ -121,7 +155,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Votre partenaire juridique en Algérie',
+                          'welcome_tagline'.tr(),
                           textAlign: TextAlign.center,
                           style: GoogleFonts.poppins(
                             fontSize: 14,
@@ -136,13 +170,13 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                           children: [
                             _TrustBadge(
                                 icon: Icons.verified_rounded,
-                                label: 'Avocats vérifiés'),
+                                label: 'verified_lawyers'.tr()),
                             _TrustBadge(
                                 icon: Icons.psychology_rounded,
-                                label: 'IA intégrée'),
+                                label: 'integrated_ai'.tr()),
                             _TrustBadge(
                                 icon: Icons.security_rounded,
-                                label: 'Sécurisé'),
+                                label: 'secure'.tr()),
                           ],
                         ),
                       ],
@@ -161,16 +195,15 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                       children: [
                         // User card
                         _RoleCard(
-                          title: 'Je suis un Utilisateur',
-                          subtitle:
-                              'Trouvez un avocat, consultez et publiez vos demandes juridiques',
+                          title: 'i_am_user'.tr(),
+                          subtitle: 'user_desc'.tr(),
                           icon: Icons.person_rounded,
                           gradient: const [
                             Color(0xFF1A56DB),
                             Color(0xFF3B82F6)
                           ],
-                          primaryAction: 'Créer un compte',
-                          secondaryAction: 'Se connecter',
+                          primaryAction: 'create_account'.tr(),
+                          secondaryAction: 'login'.tr(),
                           onPrimary: () => Navigator.push(
                             context,
                             _slideRoute(const UserSignUpScreen()),
@@ -181,16 +214,15 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 
                         // Lawyer card
                         _RoleCard(
-                          title: 'Je suis un Avocat',
-                          subtitle:
-                              'Gérez votre profil, répondez aux consultations et développez votre clientèle',
+                          title: 'i_am_lawyer'.tr(),
+                          subtitle: 'lawyer_desc'.tr(),
                           icon: Icons.gavel_rounded,
                           gradient: const [
                             Color(0xFF0F766E),
                             Color(0xFF14B8A6)
                           ],
-                          primaryAction: 'Inscription avocat',
-                          secondaryAction: 'Se connecter',
+                          primaryAction: 'lawyer_signup'.tr(),
+                          secondaryAction: 'login'.tr(),
                           onPrimary: () => Navigator.push(
                             context,
                             _slideRoute(lawyer_register.LawyerRegisterScreen()),
@@ -215,7 +247,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                   },
                   icon: const Icon(Icons.admin_panel_settings_outlined, size: 16, color: AppColors.textSecondary),
                   label: Text(
-                    'Accès Administrateur',
+                    'admin_access'.tr(),
                     style: GoogleFonts.poppins(
                       color: AppColors.textSecondary,
                       fontSize: 12,
@@ -291,7 +323,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                   const SizedBox(height: 20),
 
                   Text(
-                    'Connexion Utilisateur',
+                    'user_login_title'.tr(),
                     style: GoogleFonts.poppins(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
@@ -299,7 +331,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                     ),
                   ),
                   Text(
-                    'Bienvenue, entrez vos identifiants',
+                    'user_login_subtitle'.tr(),
                     style: GoogleFonts.poppins(
                         fontSize: 13, color: AppColors.textSecondary),
                   ),
@@ -309,7 +341,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                     controller: emailCtrl,
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
-                      labelText: 'Adresse email',
+                      labelText: 'email_address'.tr(),
                       prefixIcon:
                           const Icon(Icons.email_outlined, size: 20),
                       border: OutlineInputBorder(
@@ -321,7 +353,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                     controller: passCtrl,
                     obscureText: obscure,
                     decoration: InputDecoration(
-                      labelText: 'Mot de passe',
+                      labelText: 'password'.tr(),
                       prefixIcon: const Icon(Icons.lock_outline, size: 20),
                       suffixIcon: IconButton(
                         icon: Icon(obscure
@@ -395,7 +427,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                               child: CircularProgressIndicator(
                                   color: Colors.white, strokeWidth: 2.5),
                             )
-                          : Text('Se connecter',
+                          : Text('login'.tr(),
                               style: GoogleFonts.poppins(
                                   fontWeight: FontWeight.w700, fontSize: 15)),
                     ),

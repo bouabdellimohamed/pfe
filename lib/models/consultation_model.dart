@@ -12,6 +12,8 @@ class ConsultationModel {
   final String status; // 'pending' | 'answered'
   final DateTime createdAt;
   final DateTime? answeredAt;
+  final String? attachedFileName;
+  final String? attachedFileBase64;
 
   ConsultationModel({
     required this.id,
@@ -25,6 +27,8 @@ class ConsultationModel {
     required this.status,
     required this.createdAt,
     this.answeredAt,
+    this.attachedFileName,
+    this.attachedFileBase64,
   });
 
   factory ConsultationModel.fromFirestore(DocumentSnapshot doc) {
@@ -41,6 +45,8 @@ class ConsultationModel {
       status: d['status'] ?? 'pending',
       createdAt: (d['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       answeredAt: (d['answeredAt'] as Timestamp?)?.toDate(),
+      attachedFileName: d['attachedFileName']?.toString(),
+      attachedFileBase64: d['attachedFileBase64']?.toString(),
     );
   }
 
@@ -55,6 +61,8 @@ class ConsultationModel {
     'status': status,
     'createdAt': FieldValue.serverTimestamp(),
     'answeredAt': answeredAt != null ? Timestamp.fromDate(answeredAt!) : null,
+    'attachedFileName': attachedFileName,
+    'attachedFileBase64': attachedFileBase64,
   };
 }
 
@@ -70,6 +78,7 @@ class RequestModel {
   final List<String> respondedLawyerIds;
   final String? acceptedLawyerId;
   final DateTime createdAt;
+  final String? attachedFileBase64;
 
   RequestModel({
     required this.id,
@@ -83,6 +92,7 @@ class RequestModel {
     required this.respondedLawyerIds,
     this.acceptedLawyerId,
     required this.createdAt,
+    this.attachedFileBase64,
   });
 
   factory RequestModel.fromFirestore(DocumentSnapshot doc) {
@@ -99,6 +109,7 @@ class RequestModel {
       respondedLawyerIds: List<String>.from(d['respondedLawyerIds'] ?? []),
       acceptedLawyerId: d['acceptedLawyerId'],
       createdAt: (d['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      attachedFileBase64: d['attachedFileBase64']?.toString(),
     );
   }
 }

@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import '../models/lawyer_model.dart';
 import '../models/user_model.dart';
 import '../models/consultation_model.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'notification_service.dart';
 
 class AuthService {
@@ -42,9 +43,9 @@ class AuthService {
       await _auth.signOut();
       return null;
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'email-already-in-use') return 'Cet email est déjà utilisé';
-      if (e.code == 'weak-password') return 'Mot de passe trop faible (6 min)';
-      return 'Erreur: ${e.message ?? e.code}';
+      if (e.code == 'email-already-in-use') return 'email_already_in_use'.tr();
+      if (e.code == 'weak-password') return 'weak_password_err'.tr();
+      return 'error'.tr() + ': ${e.message ?? e.code}';
     }
   }
 
@@ -64,13 +65,13 @@ class AuthService {
       final lawyerDoc = await _firestore.collection('lawyers').doc(uid).get();
       if (lawyerDoc.exists) {
         await _auth.signOut();
-        return 'Ce compte est un compte avocat.\nUtilisez la connexion avocat.';
+        return 'account_is_lawyer_err'.tr();
       }
 
       // ✅ يجب تأكيد الإيميل قبل أي شيء آخر
       if (!cred.user!.emailVerified) {
         await _auth.signOut();
-        return 'Veuillez vérifier votre email en cliquant sur le lien reçu.';
+        return 'verify_email_err'.tr();
       }
 
       // ✅ أول دخول ناجح بعد تأكيد الإيميل — ننشئ وثيقة Firestore الآن
@@ -99,15 +100,15 @@ class AuthService {
 
       if ((userDoc.data()?['disabled'] ?? false) == true) {
         await _auth.signOut();
-        return 'Ce compte est désactivé. Contactez le support.';
+        return 'account_disabled_err'.tr();
       }
 
       return null; // ✅ نجح
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found') return 'Aucun utilisateur trouvé';
-      if (e.code == 'wrong-password') return 'Mot de passe incorrect';
+      if (e.code == 'user-not-found') return 'user_not_found_err'.tr();
+      if (e.code == 'wrong-password') return 'wrong_password_err'.tr();
       if (e.code == 'invalid-credential')
-        return 'Email ou mot de passe incorrect';
+        return 'invalid_credentials_err'.tr();
       return 'Erreur: ${e.message}';
     } catch (e) {
       return 'Erreur inattendue: $e';
@@ -133,29 +134,29 @@ class AuthService {
         final userDoc = await _firestore.collection('users').doc(uid).get();
         await _auth.signOut();
         if (userDoc.exists) {
-          return 'Ce compte est un compte utilisateur.\nUtilisez la connexion utilisateur.';
+          return 'account_is_user_err'.tr();
         }
-        return 'Compte avocat introuvable. Veuillez vous inscrire.';
+        return 'lawyer_account_not_found'.tr();
       }
 
       // ✅ الحساب موجود — الآن نتحقق من الإيميل (الرسالة ستكون منطقية)
       if (!cred.user!.emailVerified) {
         await _auth.signOut();
-        return 'Veuillez vérifier votre email en cliquant sur le lien reçu.';
+        return 'verify_email_err'.tr();
       }
       // ✅ فحص حالة الطلب
       final status = lawyerDoc.data()?['status'] ?? 'approved';
       if (status == 'pending') {
         await _auth.signOut();
-        return 'Votre demande est en cours d\'examen.\nVous pourrez vous connecter dès que l\'administrateur aura approuvé votre dossier.';
+        return 'request_pending_err'.tr();
       }
       if (status == 'rejected') {
         await _auth.signOut();
-        return 'Votre demande a été refusée.\nContactez l\'administrateur pour plus d\'informations.';
+        return 'request_rejected_err'.tr();
       }
       if ((lawyerDoc.data()?['disabled'] ?? false) == true) {
         await _auth.signOut();
-        return 'Ce compte avocat est désactivé. Contactez le support.';
+        return 'account_disabled_err'.tr();
       }
 
       // ✅ تحديث emailVerified في Firestore عند أول دخول ناجح
@@ -165,10 +166,10 @@ class AuthService {
 
       return null; // ✅ نجح
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found') return 'Aucun utilisateur trouvé';
-      if (e.code == 'wrong-password') return 'Mot de passe incorrect';
+      if (e.code == 'user-not-found') return 'user_not_found_err'.tr();
+      if (e.code == 'wrong-password') return 'wrong_password_err'.tr();
       if (e.code == 'invalid-credential')
-        return 'Email ou mot de passe incorrect';
+        return 'invalid_credentials_err'.tr();
       return 'Erreur: ${e.message}';
     } catch (e) {
       return 'Erreur inattendue: $e';
@@ -189,13 +190,13 @@ class AuthService {
       final lawyerDoc = await _firestore.collection('lawyers').doc(uid).get();
       if (lawyerDoc.exists) {
         await _auth.signOut();
-        return 'Ce compte est un compte avocat.\nUtilisez la connexion avocat.';
+        return 'account_is_lawyer_err'.tr();
       }
 
       // ✅ تأكيد الإيميل أولاً قبل أي فحص Firestore
       if (!cred.user!.emailVerified) {
         await _auth.signOut();
-        return 'Veuillez vérifier votre email en cliquant sur le lien reçu.';
+        return 'verify_email_err'.tr();
       }
 
       // ✅ أول دخول ناجح — ننشئ وثيقة Firestore إذا لم تكن موجودة
@@ -221,15 +222,15 @@ class AuthService {
 
       if ((userDoc.data()?['disabled'] ?? false) == true) {
         await _auth.signOut();
-        return 'Ce compte est désactivé. Contactez le support.';
+        return 'account_disabled_err'.tr();
       }
 
       return null;
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found') return 'Aucun utilisateur trouvé';
-      if (e.code == 'wrong-password') return 'Mot de passe incorrect';
+      if (e.code == 'user-not-found') return 'user_not_found_err'.tr();
+      if (e.code == 'wrong-password') return 'wrong_password_err'.tr();
       if (e.code == 'invalid-credential')
-        return 'Email ou mot de passe incorrect';
+        return 'invalid_credentials_err'.tr();
       return 'Erreur: ${e.message}';
     } catch (e) {
       return 'Erreur inattendue: $e';
@@ -269,6 +270,8 @@ class AuthService {
     required String userFullName,
     required String type,
     required String question,
+    String? attachedFileName,
+    String? attachedFileBase64,
   }) async {
     await _firestore.collection('consultations').add({
       'userId': userId,
@@ -281,6 +284,8 @@ class AuthService {
       'lawyerName': null,
       'createdAt': FieldValue.serverTimestamp(),
       'answeredAt': null,
+      'attachedFileName': attachedFileName,
+      'attachedFileBase64': attachedFileBase64,
     });
   }
 
@@ -342,8 +347,8 @@ class AuthService {
       final notifService = NotificationService();
       await notifService.addNotification(
         userId: userId,
-        title: 'Réponse à votre consultation',
-        message: 'Maître $lawyerName a répondu à votre consultation.',
+        title: 'notif_consultation_title'.tr(),
+        message: 'notif_consultation_msg'.tr(namedArgs: {'name': lawyerName}),
         data: {'type': 'consultation', 'consultationId': consultationId},
       );
     } catch (e) {
@@ -362,6 +367,7 @@ class AuthService {
     required String type,
     required String description,
     String? attachedFileName,
+    String? attachedFileBase64,
   }) async {
     await _firestore.collection('requests').add({
       'userId': userId,
@@ -370,6 +376,7 @@ class AuthService {
       'type': type,
       'description': description,
       'attachedFileName': attachedFileName,
+      'attachedFileBase64': attachedFileBase64,
       'status': 'open',
       'respondedLawyerIds': [],
       'createdAt': FieldValue.serverTimestamp(),
@@ -424,8 +431,8 @@ class AuthService {
         final notifService = NotificationService();
         await notifService.addNotification(
           userId: userId,
-          title: 'Nouvelle réponse à votre demande',
-          message: 'Maître ${lawyerName ?? ''} a répondu à votre demande. Consultez vos messages.',
+          title: 'notif_request_title'.tr(),
+          message: 'notif_request_msg'.tr(namedArgs: {'name': lawyerName ?? ''}),
           data: {'type': 'request', 'requestId': requestId},
         );
       } catch (e) {
