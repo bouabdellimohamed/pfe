@@ -1,0 +1,197 @@
+class _RequestCardState extends State<_RequestCard> {
+  bool _expanded = false;
+  bool _openingChat = false;
+
+  static const _gold = Color(0xFFC9A84C);
+  static const _goldLight = Color(0xFFE2C47A);
+
+  bool get _responded => widget.r.respondedLawyerIds.contains(widget.uid);
+
+  @override
+  Widget build(BuildContext context) {
+    final r = widget.r;
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 10, offset: const Offset(0, 4)),
+        ]
+      ),
+      child: InkWell(
+        onTap: () => setState(() => _expanded = !_expanded),
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Expanded(child: Text(r.title,
+                  style: GoogleFonts.outfit(fontWeight: FontWeight.bold,
+                      fontSize: 16, color: Colors.white))),
+              Icon(_expanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                  color: Colors.white54),
+            ]),
+            const SizedBox(height: 10),
+            Row(children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _gold.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _gold.withOpacity(0.3)),
+                ),
+                child: Text(r.type.tr(), style: GoogleFonts.poppins(color: _goldLight, fontSize: 11, fontWeight: FontWeight.w500)),
+              ),
+              const Spacer(),
+              const Icon(Icons.person_outline_rounded, size: 14, color: Colors.white54),
+              const SizedBox(width: 4),
+              Text(r.userFullName,
+                  style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12)),
+            ]),
+            const SizedBox(height: 12),
+            Text(
+              r.description,
+              maxLines: _expanded ? null : 2,
+              overflow: _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
+              style: GoogleFonts.poppins(color: Colors.white.withOpacity(0.85), fontSize: 13, height: 1.5),
+            ),
+            
+            if (r.attachedFileName != null && r.attachedFileBase64 != null) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withOpacity(0.1)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: _gold.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: (['jpg', 'jpeg', 'png'].contains(r.attachedFileName!.split('.').last.toLowerCase()))
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.memory(base64Decode(r.attachedFileBase64!), fit: BoxFit.cover),
+                            )
+                          : const Icon(Icons.insert_drive_file_rounded, color: _gold, size: 24),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            r.attachedFileName!,
+                            style: GoogleFonts.poppins(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text('attachment'.tr(), style: GoogleFonts.poppins(color: Colors.white54, fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                    if (['jpg', 'jpeg', 'png'].contains(r.attachedFileName!.split('.').last.toLowerCase()))
+                      IconButton(
+                        icon: const Icon(Icons.fullscreen_rounded, color: _gold),
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => Dialog(
+                              backgroundColor: Colors.transparent,
+                              child: Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Image.memory(base64Decode(r.attachedFileBase64!)),
+                                  ),
+                                  Positioned(
+                                    right: 10, top: 10,
+                                    child: CircleAvatar(
+                                      backgroundColor: Colors.black54,
+                                      child: IconButton(
+                                        icon: const Icon(Icons.close, color: Colors.white),
+                                        onPressed: () => Navigator.pop(ctx),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                  ],
+                ),
+              ),
+            ],
+
+            if (_expanded) ...[
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity, height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: _openingChat ? null : _openChat,
+                  icon: Icon(
+                    _openingChat ? Icons.hourglass_bottom_rounded
+                        : _responded ? Icons.check_circle_rounded : Icons.reply_rounded,
+                    size: 18),
+                  label: Text(_openingChat ? 'opening'.tr()
+                      : _responded ? 'continue_chat'.tr() : 'reply'.tr(),
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _responded ? const Color(0xFF4CAF50) : _gold,
+                    foregroundColor: Colors.black87,
+                    elevation: 4,
+                    shadowColor: (_responded ? const Color(0xFF4CAF50) : _gold).withOpacity(0.4),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Row(children: [
+              const Icon(Icons.people_outline_rounded, size: 14, color: Colors.white54),
+              const SizedBox(width: 4),
+              Text('responses_count'.tr(namedArgs: {'count': r.respondedLawyerIds.length.toString()}),
+                  style: GoogleFonts.poppins(color: Colors.white54, fontSize: 12)),
+            ]),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openChat() async {
+    setState(() => _openingChat = true);
+    try {
+      final profile = await widget.auth.getLawyerProfile(widget.uid);
+      await widget.auth.respondToRequest(
+        widget.r.id, 
+        widget.uid,
+        userId: widget.r.userId,
+        lawyerName: profile?.name,
+      );
+      final convId = await widget.auth.getOrCreateConversationIdForRequest(
+        requestId: widget.r.id,
+        userId: widget.r.userId,
+        lawyerId: widget.uid,
+      );
+      if (mounted) {
+        Navigator.push(context, MaterialPageRoute(
+            builder: (_) => ChatThreadScreen(conversationId: convId)));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red));
+    } finally {
+      if (mounted) setState(() => _openingChat = false);
+    }
+  }
+}

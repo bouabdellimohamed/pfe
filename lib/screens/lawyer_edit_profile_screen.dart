@@ -1,0 +1,831 @@
+import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:convert';
+import 'dart:typed_data';
+import '../services/auth_service.dart';
+import '../services/profile_image_service.dart';
+import '../widgets/profile_avatar.dart';
+import '../models/lawyer_model.dart';
+import '../data/algeria_data.dart';
+
+class LawyerEditProfileScreen extends StatefulWidget {
+  final LawyerModel? lawyer;
+  const LawyerEditProfileScreen({super.key, this.lawyer});
+  @override
+  State<LawyerEditProfileScreen> createState() =>
+      _LawyerEditProfileScreenState();
+}
+
+class _LawyerEditProfileScreenState extends State<LawyerEditProfileScreen> {
+  final _auth = AuthService();
+  final _formKey = GlobalKey<FormState>();
+
+  final _nameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController(); // ✅
+  final _phoneCtrl = TextEditingController();
+  final _expCtrl = TextEditingController();
+  final _bioCtrl = TextEditingController();
+  final _locationUrlCtrl = TextEditingController(); // ✅ حقل تعديل الرابط
+  final _wilayaCtrl = TextEditingController(); // ✅
+  final _dairaCtrl = TextEditingController(); // ✅
+  final _communeCtrl = TextEditingController(); // ✅
+  List<Map<String, dynamic>> _documents = [];
+  
+  List<String> _dairas = [];
+  List<String> _communes = []; // ✅
+
+  bool _loading = true;
+  bool _saving = false;
+  String _error = '';
+  String? _lawyerUid;
+  String? _profileImageBase64;
+  bool _imageChanged = false;
+
+  final List<String> _allSpecialities = [
+    'Droit familial',
+    'Droit pénal',
+    'Droit commercial',
+    'Droit civil',
+    'Droit immobilier',
+    'Droit administratif',
+    'Droit du travail',
+    'Droit des sociétés',
+    'Droit fiscal',
+    'Propriété Intellectuelle',
+    'Droit bancaire',
+    'Droit des assurances',
+    'Droit médical',
+    'Droit social',
+    'Droit de la consommation',
+  ];
+  final List<String> _selected = [];
+
+  final List<String> _wilayas = [
+    "Adrar", "Chlef", "Laghouat", "Oum El Bouaghi", "Batna", "Béjaïa", "Biskra", "Béchar", "Blida", "Bouira",
+    "Tamanrasset", "Tébessa", "Tlemcen", "Tiaret", "Tizi Ouzou", "Alger", "Djelfa", "Jijel", "Sétif", "Saïda",
+    "Skikda", "Sidi Bel Abbès", "Annaba", "Guelma", "Constantine", "Médéa", "Mostaganem", "M'Sila", "Mascara", "Ouargla",
+    "Oran", "El Bayadh", "Illizi", "Bordj Bou Arreridj", "Boumerdès", "El Tarf", "Tindouf", "Tissemsilt", "El Oued", "Khenchela",
+    "Souk Ahras", "Tipaza", "Mila", "Aïn Defla", "Naâma", "Aïn Témouchent", "Ghardaïa", "Relizane", "Timimoun", "Bordj Badji Mokhtar",
+    "Ouled Djellal", "Béni Abbès", "In Salah", "In Guezzam", "Touggourt", "Djanet", "El Meghaier", "El Meniaa"
+  ];
+
+  static const _navy = Color(0xFF0D1B2A);
+  static const _navyLight = Color(0xFF1B2D42);
+  static const _navyCard = Color(0xFF162233);
+  static const _gold = Color(0xFFC9A84C);
+  static const _textPrimary = Color(0xFFF0EDE8);
+  static const _textSecondary = Color(0xFF8A9BB0);
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.lawyer != null) {
+      _initFromModel(widget.lawyer!);
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (widget.lawyer == null && _loading) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is LawyerModel) {
+        _initFromModel(args);
+      } else {
+        _fetchFromFirestore();
+      }
+    }
+  }
+
+  void _initFromModel(LawyerModel l) {
+    _lawyerUid = l.uid;
+    _nameCtrl.text = l.name;
+    _emailCtrl.text = l.email;
+    _phoneCtrl.text = l.phone ?? '';
+    _expCtrl.text = l.experience?.toString() ?? '';
+    _bioCtrl.text = l.bio ?? '';
+    _locationUrlCtrl.text = l.locationUrl ?? ''; // ✅ تعبئة الرابط عند التهيئة
+    _wilayaCtrl.text = l.wilaya ?? '';
+    _dairaCtrl.text = l.daira ?? '';
+    _communeCtrl.text = l.commune ?? '';
+    if (l.documents != null) {
+      _documents = List.from(l.documents!);
+    }
+    _profileImageBase64 = l.profileImageBase64;
+    _selected.clear();
+    if (l.speciality.isNotEmpty) {
+      _selected.addAll(l.speciality.split(', ').where((s) => s.isNotEmpty));
+    }
+    _updateLocationLists(l.wilaya, l.daira);
+    setState(() => _loading = false);
+  }
+
+  Future<void> _fetchFromFirestore() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      setState(() => _loading = false);
+      return;
+    }
+    final profile = await _auth.getLawyerProfile(uid);
+    if (profile != null && mounted)
+      _initFromModel(profile);
+    else if (mounted) setState(() => _loading = false);
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _emailCtrl.dispose();
+    _phoneCtrl.dispose();
+    _expCtrl.dispose();
+    _bioCtrl.dispose();
+    _locationUrlCtrl.dispose(); // ✅ تحرير المتحكم
+    _wilayaCtrl.dispose();
+    _dairaCtrl.dispose();
+    _communeCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _changeProfileImage() async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: _navyCard,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: _textSecondary.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text('photo_profile_title'.tr(),
+                style: const TextStyle(
+                    color: _textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700)),
+            const SizedBox(height: 20),
+            _photoOption(
+              icon: Icons.photo_library_rounded,
+              label: 'choose_from_gallery'.tr(),
+              color: _gold,
+              onTap: () => Navigator.pop(ctx, 'pick'),
+            ),
+            if (_profileImageBase64 != null) ...[
+              const SizedBox(height: 10),
+              _photoOption(
+                icon: Icons.delete_outline_rounded,
+                label: 'remove_photo'.tr(),
+                color: const Color(0xFFEF5350),
+                onTap: () => Navigator.pop(ctx, 'remove'),
+              ),
+            ],
+            const SizedBox(height: 10),
+            _photoOption(
+              icon: Icons.close_rounded,
+              label: 'cancel'.tr(),
+              color: _textSecondary,
+              onTap: () => Navigator.pop(ctx),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (action == null) return;
+
+    if (action == 'pick') {
+      final base64 = await ProfileImageService.pickAndCompressImage(context);
+      if (base64 != null && mounted) {
+        setState(() {
+          _profileImageBase64 = base64;
+          _imageChanged = true;
+        });
+      }
+    } else if (action == 'remove') {
+      setState(() {
+        _profileImageBase64 = null;
+        _imageChanged = true;
+      });
+    }
+  }
+
+  Widget _photoOption({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 22),
+            const SizedBox(width: 14),
+            Text(label,
+                style: TextStyle(
+                    color: color, fontSize: 15, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickDocument() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'png', 'jpeg'],
+      withData: true,
+    );
+    if (result != null && result.files.isNotEmpty) {
+      final file = result.files.first;
+      if (file.size > 2 * 1024 * 1024) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('file_too_large_msg'.tr(namedArgs: {'size': '2000'}))),
+          );
+        }
+        return;
+      }
+      if (file.bytes != null) {
+        final base64String = base64Encode(file.bytes!);
+        setState(() {
+          _documents.add({
+            'name': file.name,
+            'base64': base64String,
+            'type': file.extension,
+          });
+        });
+      }
+    }
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selected.isEmpty) {
+      setState(() => _error = 'select_at_least_one_spec'.tr());
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _error = '';
+    });
+    try {
+      final uid = _lawyerUid ?? FirebaseAuth.instance.currentUser?.uid ?? '';
+
+      final updates = <String, dynamic>{
+        'name': _nameCtrl.text.trim(),
+        'email': _emailCtrl.text.trim(),
+        'phone': _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
+        'experience': int.tryParse(_expCtrl.text),
+        'speciality': _selected.join(', '),
+        'bio': _bioCtrl.text.trim().isEmpty ? null : _bioCtrl.text.trim(),
+        'locationUrl': _locationUrlCtrl.text.trim().isEmpty
+            ? null
+            : _locationUrlCtrl.text.trim(), 
+        'wilaya': _wilayaCtrl.text.trim().isEmpty ? null : _wilayaCtrl.text.trim(),
+        'daira': _dairaCtrl.text.trim().isEmpty ? null : _dairaCtrl.text.trim(),
+        'commune': _communeCtrl.text.trim().isEmpty ? null : _communeCtrl.text.trim(),
+        'documents': _documents,
+      };
+
+      if (_imageChanged) {
+        if (_profileImageBase64 != null) {
+          updates['profileImageBase64'] = _profileImageBase64;
+        } else {
+          await ProfileImageService.removeProfileImage(uid, isLawyer: true);
+        }
+      }
+
+      await _auth.updateLawyerProfile(uid, updates);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('profile_updated'.tr()),
+            backgroundColor: const Color(0xFF2E7D32)));
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      setState(() => _error = 'error'.tr() + ': $e');
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(
+        backgroundColor: _navy,
+        body: Center(child: CircularProgressIndicator(color: _gold)),
+      );
+    }
+    return Scaffold(
+      backgroundColor: _navy,
+      appBar: AppBar(
+        backgroundColor: _navyLight,
+        leading: IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: _navyCard,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0x26C9A84C)),
+            ),
+            child: const Icon(Icons.arrow_back_rounded,
+                color: _textSecondary, size: 18),
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text('edit_profile_title'.tr(),
+            style: const TextStyle(
+                color: _textPrimary,
+                fontSize: 17,
+                fontWeight: FontWeight.w700)),
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0x1AC9A84C),
+              border: Border.all(color: const Color(0x33C9A84C)),
+            ),
+            child: const Icon(Icons.balance_rounded, color: _gold, size: 16),
+          ),
+        ],
+      ),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            const SizedBox(height: 8),
+
+            Center(
+              child: GestureDetector(
+                onTap: _changeProfileImage,
+                child: ProfileAvatar(
+                  imageBase64: _profileImageBase64,
+                  name: _nameCtrl.text,
+                  size: 100,
+                  borderColor: _gold,
+                  borderWidth: 2.5,
+                  backgroundColor: _navyLight,
+                  badge: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: _gold,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: _navy, width: 2.5),
+                    ),
+                    child: const Icon(Icons.camera_alt_rounded,
+                        color: _navy, size: 16),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Center(
+              child: TextButton(
+                onPressed: _changeProfileImage,
+                child: Text(
+                  _profileImageBase64 != null
+                      ? 'change_photo'.tr()
+                      : 'add_photo_optional'.tr(),
+                  style: const TextStyle(
+                      color: _gold, fontSize: 13, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            _sectionLabel('personal_info_section'.tr()),
+            const SizedBox(height: 12),
+            _card(children: [
+              _field(
+                  label: 'full_name_label'.tr(),
+                  ctrl: _nameCtrl,
+                  icon: Icons.person_outline_rounded,
+                  validator: (v) => v!.isEmpty ? 'required_field'.tr() : null),
+              const SizedBox(height: 14),
+              _field(
+                  label: 'email_label'.tr(),
+                  ctrl: _emailCtrl,
+                  icon: Icons.email_outlined,
+                  keyboard: TextInputType.emailAddress,
+                  validator: (v) => v!.isEmpty ? 'required_field'.tr() : null),
+              const SizedBox(height: 14),
+              _field(
+                  label: 'phone_label'.tr(),
+                  ctrl: _phoneCtrl,
+                  icon: Icons.phone_outlined,
+                  keyboard: TextInputType.phone),
+            ]),
+
+            const SizedBox(height: 24),
+
+            _sectionLabel('pro_profile_section'.tr()),
+            const SizedBox(height: 12),
+            _card(children: [
+              _field(
+                  label: "experience_label".tr(),
+                  ctrl: _expCtrl,
+                  icon: Icons.work_outline_rounded,
+                  keyboard: TextInputType.number),
+              const SizedBox(height: 16),
+              Text('specialities_label'.tr(),
+                  style: const TextStyle(
+                      color: _textSecondary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500)),
+              const SizedBox(height: 10),
+              _specialitiesGrid(),
+            ]),
+
+            const SizedBox(height: 24),
+
+            // ✅ إضافة حقل الموقع الجغرافي
+            _sectionLabel('geo_location_section'.tr()),
+            const SizedBox(height: 12),
+            _card(children: [
+              _dropdownField(
+                  label: 'wilaya'.tr(),
+                  value: _wilayaCtrl.text.isEmpty ? null : _wilayaCtrl.text,
+                  items: _wilayas,
+                  icon: Icons.location_city_outlined,
+                  onChanged: (v) {
+                    setState(() {
+                      _wilayaCtrl.text = v ?? '';
+                      _dairaCtrl.clear();
+                      _communeCtrl.clear();
+                      _updateLocationLists(_wilayaCtrl.text, null);
+                    });
+                  }),
+              const SizedBox(height: 14),
+              _dropdownField(
+                  label: 'daira'.tr(),
+                  value: _dairas.contains(_dairaCtrl.text) ? _dairaCtrl.text : null,
+                  items: _dairas,
+                  icon: Icons.map_outlined,
+                  onChanged: (v) {
+                    setState(() {
+                      _dairaCtrl.text = v ?? '';
+                      _communeCtrl.clear();
+                      _updateLocationLists(_wilayaCtrl.text, _dairaCtrl.text);
+                    });
+                  }),
+              const SizedBox(height: 14),
+              _dropdownField(
+                  label: 'commune'.tr(),
+                  value: _communes.contains(_communeCtrl.text) ? _communeCtrl.text : null,
+                  items: _communes,
+                  icon: Icons.place_outlined,
+                  onChanged: (v) => setState(() => _communeCtrl.text = v ?? '')),
+              const SizedBox(height: 14),
+              _field(
+                  label: 'office_location_url_label'.tr(),
+                  ctrl: _locationUrlCtrl,
+                  icon: Icons.link_outlined),
+            ]),
+
+            const SizedBox(height: 24),
+
+            _sectionLabel('bio_description_section'.tr()),
+            const SizedBox(height: 12),
+            _card(children: [
+              _field(
+                  label: 'Bio',
+                  ctrl: _bioCtrl,
+                  icon: Icons.description_outlined,
+                  maxLines: 5),
+            ]),
+
+            const SizedBox(height: 24),
+
+            _sectionLabel('documents_section'.tr()),
+            const SizedBox(height: 12),
+            _card(children: [
+              Text(
+                'documents_desc'.tr(),
+                style: const TextStyle(color: _textSecondary, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              ..._documents.asMap().entries.map((entry) {
+                final int idx = entry.key;
+                final doc = entry.value;
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: _navyLight,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: _textSecondary.withOpacity(0.2)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.description_outlined, color: _gold, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          doc['name'] ?? 'Document',
+                          style: const TextStyle(color: _textPrimary, fontSize: 14),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Color(0xFFEF5350), size: 20),
+                        onPressed: () {
+                          setState(() {
+                            _documents.removeAt(idx);
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              }),
+              OutlinedButton.icon(
+                onPressed: _pickDocument,
+                icon: const Icon(Icons.upload_file_rounded, color: _gold, size: 18),
+                label: Text('add_document'.tr(), style: const TextStyle(color: _gold)),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: _gold),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ]),
+
+            if (_error.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0x607B1F1F),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0x60C62828)),
+                ),
+                child: Row(children: [
+                  const Icon(Icons.error_outline,
+                      color: Color(0xFFEF9A9A), size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(
+                      child: Text(_error,
+                          style: const TextStyle(
+                              color: Color(0xFFEF9A9A), fontSize: 13))),
+                ]),
+              ),
+            ],
+
+            const SizedBox(height: 24),
+
+            Row(children: [
+              Expanded(
+                  child: OutlinedButton(
+                onPressed: () => Navigator.pop(context),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _textSecondary,
+                  side: BorderSide(color: _textSecondary.withOpacity(0.3)),
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+                child: Text('cancel_btn'.tr()),
+              )),
+              const SizedBox(width: 14),
+              Expanded(
+                  child: ElevatedButton(
+                onPressed: _saving ? null : _save,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _gold,
+                  foregroundColor: _navy,
+                  disabledBackgroundColor: _gold.withOpacity(0.35),
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+                child: _saving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation(_navy)))
+                    : Text('save_btn'.tr(),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700, letterSpacing: 1)),
+              )),
+            ]),
+
+            const SizedBox(height: 30),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionLabel(String t) => Row(children: [
+        Container(
+            width: 3,
+            height: 18,
+            decoration: BoxDecoration(
+                color: _gold, borderRadius: BorderRadius.circular(4))),
+        const SizedBox(width: 10),
+        Text(t.toUpperCase(),
+            style: const TextStyle(
+                color: _textPrimary,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.5)),
+      ]);
+
+  void _updateLocationLists(String? wilaya, String? daira) {
+    if (wilaya != null && wilaya.isNotEmpty) {
+      _dairas = AlgeriaData.wilayaDairas[wilaya] ?? [];
+    } else {
+      _dairas = [];
+    }
+
+    if (daira != null && daira.isNotEmpty) {
+      _communes = AlgeriaData.dairaCommunes[daira] ?? [];
+    } else {
+      _communes = [];
+    }
+  }
+
+  Widget _card({required List<Widget> children}) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: _navyCard,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0x14FFFFFF)),
+        ),
+        child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start, children: children),
+      );
+
+  Widget _dropdownField({
+    required String label,
+    required String? value,
+    required List<String> items,
+    required IconData icon,
+    required void Function(String?) onChanged,
+  }) =>
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label,
+            style: const TextStyle(
+                color: _textSecondary,
+                fontSize: 13,
+                fontWeight: FontWeight.w500)),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          value: items.contains(value) ? value : null,
+          items: items.map((w) => DropdownMenuItem(
+            value: w,
+            child: Text(w.tr(), style: const TextStyle(color: _textPrimary, fontSize: 15)),
+          )).toList(),
+          onChanged: onChanged,
+          dropdownColor: _navyLight,
+          decoration: InputDecoration(
+            prefixIcon: Icon(icon, color: _textSecondary, size: 20),
+            filled: true,
+            fillColor: _navyLight,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: _textSecondary.withOpacity(0.2))),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: _gold, width: 1.5)),
+          ),
+        ),
+      ]);
+
+  Widget _field({
+    required String label,
+    required TextEditingController ctrl,
+    required IconData icon,
+    int maxLines = 1,
+    TextInputType? keyboard,
+    String? Function(String?)? validator,
+  }) =>
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label,
+            style: const TextStyle(
+                color: _textSecondary,
+                fontSize: 13,
+                fontWeight: FontWeight.w500)),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: ctrl,
+          maxLines: maxLines,
+          keyboardType: keyboard,
+          style: const TextStyle(color: _textPrimary, fontSize: 15),
+          decoration: InputDecoration(
+            prefixIcon: Icon(icon, color: _textSecondary, size: 20),
+            filled: true,
+            fillColor: _navyLight,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: _textSecondary.withOpacity(0.2))),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: _gold, width: 1.5)),
+            errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: Color(0xFFEF5350))),
+            focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: Color(0xFFEF5350))),
+            errorStyle: const TextStyle(color: Color(0xFFEF9A9A), fontSize: 12),
+          ),
+          validator: validator,
+        ),
+      ]);
+
+  Widget _specialitiesGrid() {
+    final maxed = _selected.length >= 3;
+    return Column(children: [
+      Align(
+          alignment: Alignment.centerRight,
+          child: Text('${_selected.length}/3',
+              style: TextStyle(
+                  color: maxed ? _gold : _textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600))),
+      const SizedBox(height: 8),
+      Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _allSpecialities.map((s) {
+            final sel = _selected.contains(s);
+            final dis = !sel && maxed;
+            return GestureDetector(
+              onTap: dis
+                  ? null
+                  : () => setState(
+                      () => sel ? _selected.remove(s) : _selected.add(s)),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: sel ? const Color(0x33C9A84C) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: sel
+                        ? _gold
+                        : dis
+                            ? const Color(0x0F8A9BB0)
+                            : const Color(0x228A9BB0),
+                    width: sel ? 1.5 : 1,
+                  ),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  if (sel)
+                    const Padding(
+                        padding: EdgeInsets.only(right: 4),
+                        child:
+                            Icon(Icons.check_rounded, size: 14, color: _gold)),
+                  Text(s.tr(),
+                      style: TextStyle(
+                        color: sel
+                            ? _gold
+                            : dis
+                                ? const Color(0x448A9BB0)
+                                : _textSecondary,
+                        fontSize: 13,
+                        fontWeight: sel ? FontWeight.w600 : FontWeight.normal,
+                      )),
+                ]),
+              ),
+            );
+          }).toList()),
+    ]);
+  }
+}
