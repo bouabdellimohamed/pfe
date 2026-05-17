@@ -11,6 +11,9 @@ import '../data/algeria_data.dart';
 import 'package:flutter/services.dart';
 import 'dart:math';
 import 'welcome_screen.dart';
+import 'admin_reports_screen.dart';
+import 'admin_content_screen.dart';
+import 'admin_accounts_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -546,7 +549,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 5,
       child: Scaffold(
         backgroundColor: AppColors.grey50,
         appBar: AppBar(
@@ -555,14 +558,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           centerTitle: true,
           bottom: TabBar(
             indicatorColor: AppColors.primary,
+            isScrollable: true,
             labelStyle:
-                GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13),
-            unselectedLabelStyle: GoogleFonts.poppins(fontSize: 13),
+                GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 12),
+            unselectedLabelStyle: GoogleFonts.poppins(fontSize: 12),
             tabs: const [
               Tab(icon: Icon(Icons.people_rounded), text: 'Avocats'),
-              Tab(
-                  icon: Icon(Icons.pending_actions_rounded),
-                  text: 'En attente'),
+              Tab(icon: Icon(Icons.pending_actions_rounded), text: 'En attente'),
+              Tab(icon: Icon(Icons.flag_rounded), text: 'Signalements'),
+              Tab(icon: Icon(Icons.article_rounded), text: 'Contenus'),
+              Tab(icon: Icon(Icons.manage_accounts_rounded), text: 'Comptes'),
             ],
           ),
           actions: [
@@ -586,7 +591,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
           ],
         ),
-        body: TabBarView(children: [_buildApprovedTab(), _buildPendingTab()]),
+        body: TabBarView(children: [
+          _buildApprovedTab(),
+          _buildPendingTab(),
+          const AdminReportsScreen(),
+          const AdminContentScreen(),
+          const AdminAccountsScreen(),
+        ]),
         floatingActionButton: FloatingActionButton.extended(
           onPressed: _seedFakeLawyers,
           backgroundColor: AppColors.primary,

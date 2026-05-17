@@ -17,6 +17,7 @@ import 'chat_inbox_screen.dart';
 import 'user_profile_management_screen.dart';
 import 'notifications_screen.dart';
 import 'lawyer_search_by_name_screen.dart';
+import '../widgets/recommended_lawyers_section.dart';
 
 class FeedHomeScreen extends StatefulWidget {
   const FeedHomeScreen({super.key});
@@ -177,6 +178,7 @@ class _HomeTab extends StatefulWidget {
 
 class _HomeTabState extends State<_HomeTab> {
   final _notificationService = NotificationService();
+  int _recRefreshToken = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -189,7 +191,7 @@ class _HomeTabState extends State<_HomeTab> {
       body: RefreshIndicator(
         color: primaryColor,
         onRefresh: () async {
-          setState(() {});
+          setState(() => _recRefreshToken++);
           await Future.delayed(const Duration(milliseconds: 800));
         },
         child: CustomScrollView(
@@ -375,6 +377,12 @@ class _HomeTabState extends State<_HomeTab> {
                           onPostRequest: widget.onPostRequest,
                           onChat: widget.onChat,
                         ),
+                      ),
+                      const SizedBox(height: 32),
+
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: RecommendedLawyersSection(refreshToken: _recRefreshToken),
                       ),
                       const SizedBox(height: 32),
 

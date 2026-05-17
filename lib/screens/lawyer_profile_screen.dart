@@ -8,13 +8,21 @@ import 'dart:typed_data';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/lawyer_model.dart';
 import '../services/favorites_service.dart';
+import '../services/interaction_tracking_service.dart';
 import '../services/signalement_service.dart';
 import '../widgets/profile_avatar.dart';
 import 'chat_thread_screen.dart';
 
 class LawyerProfileScreen extends StatefulWidget {
   final LawyerModel lawyer;
-  const LawyerProfileScreen({super.key, required this.lawyer});
+  /// When false, skips auto profile-view logging (caller already tracked).
+  final bool trackProfileView;
+
+  const LawyerProfileScreen({
+    super.key,
+    required this.lawyer,
+    this.trackProfileView = true,
+  });
 
   @override
   State<LawyerProfileScreen> createState() => _LawyerProfileScreenState();
@@ -30,6 +38,7 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
 
   // Favorites
   final _favService = FavoritesService();
+  final _tracking = InteractionTrackingService();
   bool _isFavorite = false;
   bool _loadingFav = true;
 
@@ -38,6 +47,13 @@ class _LawyerProfileScreenState extends State<LawyerProfileScreen> {
     super.initState();
     _checkIfRated();
     _checkFavorite();
+    if (widget.trackProfileView) {
+      _tracking.recordProfileView(
+        lawyerId: widget.lawyer.uid,
+        speciality: widget.lawyer.speciality.split(',').first.trim(),
+        wilaya: widget.lawyer.wilaya,
+      );
+    }
   }
 
   Future<void> _checkIfRated() async {

@@ -8,7 +8,6 @@ import '../models/user_model.dart';
 import '../models/consultation_model.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'notification_service.dart';
-
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

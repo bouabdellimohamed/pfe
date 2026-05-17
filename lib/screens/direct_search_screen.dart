@@ -7,6 +7,7 @@ import '../widgets/profile_avatar.dart';
 import 'lawyer_profile_screen.dart';
 import 'lawyers_result_screen.dart';
 import '../data/algeria_data.dart';
+import '../services/interaction_tracking_service.dart';
 
 class DirectSearchScreen extends StatefulWidget {
   final String? preselectedSpeciality;
@@ -119,6 +120,12 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> with SingleTick
 
   void _performSearch() {
     HapticFeedback.mediumImpact();
+    if (_selectedSpeciality != null && _selectedWilaya != null) {
+      InteractionTrackingService().recordSearch(
+        speciality: _selectedSpeciality!,
+        wilaya: _selectedWilaya!,
+      );
+    }
     Navigator.push(
       context,
       MaterialPageRoute(
