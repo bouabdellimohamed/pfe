@@ -9,6 +9,8 @@ class UserPreferenceProfile {
   final Map<String, String> wilayaLabels;
   final Set<String> favoriteLawyerIds;
   final Set<String> chattedLawyerIds;
+  /// Lawyers the user explicitly dismissed via "لا يهمني".
+  final Set<String> dismissedLawyerIds;
 
   const UserPreferenceProfile({
     required this.specialityScores,
@@ -17,6 +19,7 @@ class UserPreferenceProfile {
     required this.wilayaLabels,
     required this.favoriteLawyerIds,
     required this.chattedLawyerIds,
+    this.dismissedLawyerIds = const {},
   });
 
   static const empty = UserPreferenceProfile(
@@ -26,6 +29,7 @@ class UserPreferenceProfile {
     wilayaLabels: {},
     favoriteLawyerIds: {},
     chattedLawyerIds: {},
+    dismissedLawyerIds: {},
   );
 
   bool get hasPersonalization =>
@@ -52,7 +56,8 @@ class UserPreferenceProfile {
         .toList();
   }
 
-  /// Lawyers the user already knows — excluded from discovery recommendations.
+  /// Lawyers the user already knows OR explicitly dismissed — excluded from
+  /// discovery recommendations.
   Set<String> get excludedLawyerIds =>
-      {...favoriteLawyerIds, ...chattedLawyerIds};
+      {...favoriteLawyerIds, ...chattedLawyerIds, ...dismissedLawyerIds};
 }

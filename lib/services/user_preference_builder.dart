@@ -104,10 +104,10 @@ class UserPreferenceBuilder {
       if (lawyerId != null) seenLawyers.add(lawyerId);
 
       if (lawyerId != null && lawyersById.containsKey(lawyerId)) {
-        final w = RecencyWeight.apply(1.2, at);
+        final w = RecencyWeight.apply(1.2, at, halfLifeDays: RecencyWeight.hlProfileView);
         applyLawyerSignals(lawyersById[lawyerId], specW: w, wilayaW: w);
       } else {
-        final w = RecencyWeight.apply(1.0, at);
+        final w = RecencyWeight.apply(1.0, at, halfLifeDays: RecencyWeight.hlProfileView);
         _addScore(specialityScores, specialityLabels, d['speciality'] as String?, w);
         _addScore(wilayaScores, wilayaLabels, d['wilaya'] as String?, w);
       }
@@ -139,7 +139,7 @@ class UserPreferenceBuilder {
         await _db.collection('consultations').where('userId', isEqualTo: uid).limit(80).get();
     for (final doc in _sortNewestFirst(consultations.docs, 'createdAt')) {
       final at = RecencyWeight.parseTime(doc.data()['createdAt']);
-      final w = RecencyWeight.apply(3.0, at);
+      final w = RecencyWeight.apply(3.0, at, halfLifeDays: RecencyWeight.hlConsultation);
       _addScore(specialityScores, specialityLabels, doc.data()['type'] as String?, w);
     }
 
@@ -147,7 +147,7 @@ class UserPreferenceBuilder {
         await _db.collection('requests').where('userId', isEqualTo: uid).limit(80).get();
     for (final doc in _sortNewestFirst(requests.docs, 'createdAt')) {
       final at = RecencyWeight.parseTime(doc.data()['createdAt']);
-      final w = RecencyWeight.apply(3.0, at);
+      final w = RecencyWeight.apply(3.0, at, halfLifeDays: RecencyWeight.hlConsultation);
       _addScore(specialityScores, specialityLabels, doc.data()['type'] as String?, w);
     }
 
@@ -156,7 +156,7 @@ class UserPreferenceBuilder {
     for (final doc in favorites.docs) {
       favoriteLawyerIds.add(doc.id);
       final at = RecencyWeight.parseTime(doc.data()['savedAt']);
-      final w = RecencyWeight.apply(2.0, at);
+      final w = RecencyWeight.apply(2.0, at, halfLifeDays: RecencyWeight.hlFavorite);
       applyLawyerSignals(lawyersById[doc.id], specW: w, wilayaW: w);
     }
 
@@ -169,8 +169,48 @@ class UserPreferenceBuilder {
       final at = RecencyWeight.parseTime(
         doc.data()['lastMessageAt'] ?? doc.data()['createdAt'],
       );
-      final w = RecencyWeight.apply(1.5, at);
+      final w = RecencyWeight.apply(1.5, at, halfLifeDays: RecencyWeight.hlChat);
       applyLawyerSignals(lawyersById[lawyerId], specW: w, wilayaW: w);
+    }
+
+    // ── Dismissals: subtract weight for "لا يهمني" actions ─────────────────
+    final dismissedIds = <String>{};
+    try {
+      final dismissalsSnap = await _db
+          .collection('users')
+          .doc(uid)
+          .collection('dismissals')
+          .get();
+      for (final doc in dismissalsSnap.docs) {
+        dismissedIds.add(doc.id);
+        final d = doc.data();
+        final at = RecencyWeight.parseTime(d['dismissedAt']);
+        // Negative weights: penalise the speciality (-2.5) and wilaya (-1.2)
+        // so the recommendation engine deprioritises similar lawyers.
+        // We clamp scores to 0 later so they never go negative.
+        final specPenalty = RecencyWeight.apply(2.5, at, halfLifeDays: RecencyWeight.hlDismissal);
+        final wilayaPenalty = RecencyWeight.apply(1.2, at, halfLifeDays: RecencyWeight.hlDismissal);
+        final rawSpec = d['speciality'] as String?;
+        final rawWilaya = d['wilaya'] as String?;
+        if (rawSpec != null && rawSpec.isNotEmpty) {
+          for (final part in rawSpec.split(',')) {
+            final key = norm(part.trim());
+            if (key.isNotEmpty && specialityScores.containsKey(key)) {
+              specialityScores[key] =
+                  (specialityScores[key]! - specPenalty).clamp(0.0, double.infinity);
+            }
+          }
+        }
+        if (rawWilaya != null && rawWilaya.isNotEmpty) {
+          final key = norm(rawWilaya);
+          if (key.isNotEmpty && wilayaScores.containsKey(key)) {
+            wilayaScores[key] =
+                (wilayaScores[key]! - wilayaPenalty).clamp(0.0, double.infinity);
+          }
+        }
+      }
+    } catch (_) {
+      // Dismissals are best-effort; continue without them.
     }
 
     try {
@@ -185,7 +225,7 @@ class UserPreferenceBuilder {
       for (final doc in searches.docs) {
         final d = doc.data();
         final at = RecencyWeight.parseTime(d['timestamp']);
-        final w = RecencyWeight.apply(2.5, at);
+        final w = RecencyWeight.apply(2.5, at, halfLifeDays: RecencyWeight.hlSearch);
         _addScore(specialityScores, specialityLabels, d['speciality'] as String?, w);
         _addScore(wilayaScores, wilayaLabels, d['wilaya'] as String?, w);
       }
@@ -199,7 +239,7 @@ class UserPreferenceBuilder {
       for (final doc in _sortNewestFirst(fallback.docs, 'timestamp')) {
         if (doc.data()['type'] != 'search') continue;
         final at = RecencyWeight.parseTime(doc.data()['timestamp']);
-        final w = RecencyWeight.apply(2.5, at);
+        final w = RecencyWeight.apply(2.5, at, halfLifeDays: RecencyWeight.hlSearch);
         _addScore(specialityScores, specialityLabels, doc.data()['type'] as String?, w);
         _addScore(wilayaScores, wilayaLabels, doc.data()['wilaya'] as String?, w);
       }
@@ -222,6 +262,7 @@ class UserPreferenceBuilder {
       wilayaLabels: wilayaLabels,
       favoriteLawyerIds: favoriteLawyerIds,
       chattedLawyerIds: chattedLawyerIds,
+      dismissedLawyerIds: dismissedIds,
     );
   }
 

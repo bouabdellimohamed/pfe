@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../services/recommendation_service.dart';
 import '../services/interaction_tracking_service.dart';
+import '../services/dismissal_service.dart';
 import '../screens/lawyer_profile_screen.dart';
 import 'profile_avatar.dart';
 
@@ -18,6 +19,7 @@ class RecommendedLawyersSection extends StatefulWidget {
 
 class _RecommendedLawyersSectionState extends State<RecommendedLawyersSection> {
   final _service = RecommendationService();
+  final _dismissal = DismissalService();
   final _tracking = InteractionTrackingService();
 
   bool _loading = true;
@@ -69,6 +71,13 @@ class _RecommendedLawyersSectionState extends State<RecommendedLawyersSection> {
       ),
     );
     _load();
+  }
+
+  Future<void> _dismiss(LawyerRecommendation rec) async {
+    HapticFeedback.mediumImpact();
+    // Optimistic UI: remove immediately from the list
+    setState(() => _items.removeWhere((r) => r.lawyer.uid == rec.lawyer.uid));
+    await _dismissal.dismiss(rec.lawyer);
   }
 
   @override
@@ -127,6 +136,7 @@ class _RecommendedLawyersSectionState extends State<RecommendedLawyersSection> {
               item: _items[index],
               rank: index + 1,
               onTap: () => _openProfile(_items[index]),
+              onDismiss: () => _dismiss(_items[index]),
             ),
           ),
         ),
@@ -162,11 +172,13 @@ class _RecommendationCard extends StatelessWidget {
   final LawyerRecommendation item;
   final int rank;
   final VoidCallback onTap;
+  final VoidCallback onDismiss;
 
   const _RecommendationCard({
     required this.item,
     required this.rank,
     required this.onTap,
+    required this.onDismiss,
   });
 
   @override
@@ -222,6 +234,27 @@ class _RecommendationCard extends StatelessWidget {
                       fontSize: 12,
                       fontWeight: FontWeight.w900,
                       color: reasonColor,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                // ── "لا يهمني" button ─────────────────────────────────────
+                GestureDetector(
+                  onTap: onDismiss,
+                  child: Tooltip(
+                    message: 'لا يهمني',
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.close_rounded,
+                        size: 14,
+                        color: Color(0xFF94A3B8),
+                      ),
                     ),
                   ),
                 ),
