@@ -9,12 +9,7 @@ import '../utils/legal_text_normalize.dart';
 import '../utils/recency_weight.dart';
 import 'user_preference_builder.dart';
 
-enum RecommendationReason {
-  matchSearch,
-  similarUsers,
-  inYourArea,
-  highRating,
-}
+enum RecommendationReason { matchSearch, similarUsers, inYourArea, highRating }
 
 class LawyerRecommendation {
   final LawyerModel lawyer;
@@ -55,7 +50,10 @@ class RecommendationService {
     return map;
   }
 
-  double _rawSpecialityAffinity(LawyerModel lawyer, Map<String, double> interests) {
+  double _rawSpecialityAffinity(
+    LawyerModel lawyer,
+    Map<String, double> interests,
+  ) {
     if (interests.isEmpty) return 0;
     final tokens = LegalTextNormalize.splitSpecialities(lawyer.speciality);
     var best = 0.0;
@@ -87,7 +85,10 @@ class RecommendationService {
   }) {
     if (!profile.hasPersonalization) return true;
 
-    final specAffinity = _rawSpecialityAffinity(lawyer, profile.specialityScores);
+    final specAffinity = _rawSpecialityAffinity(
+      lawyer,
+      profile.specialityScores,
+    );
     final wilayaAffinity = _rawWilayaAffinity(lawyer, profile.wilayaScores);
 
     final hasSpecInterest = profile.specialityScores.isNotEmpty;
@@ -184,27 +185,45 @@ class RecommendationService {
       try {
         final cons = await _db
             .collection('consultations')
-            .where('type', whereIn: topSpecs.length > 10 ? topSpecs.sublist(0, 10) : topSpecs)
+            .where(
+              'type',
+              whereIn: topSpecs.length > 10
+                  ? topSpecs.sublist(0, 10)
+                  : topSpecs,
+            )
             .limit(80)
             .get();
         for (final doc in cons.docs) {
           final otherUid = doc.data()['userId'] as String?;
           if (otherUid == null || otherUid == uid) continue;
           final at = RecencyWeight.parseTime(doc.data()['createdAt']);
-          final w = RecencyWeight.apply(3.0, at, halfLifeDays: RecencyWeight.hlConsultation);
+          final w = RecencyWeight.apply(
+            3.0,
+            at,
+            halfLifeDays: RecencyWeight.hlConsultation,
+          );
           similarUsers[otherUid] = (similarUsers[otherUid] ?? 0) + w;
         }
 
         final reqs = await _db
             .collection('requests')
-            .where('type', whereIn: topSpecs.length > 10 ? topSpecs.sublist(0, 10) : topSpecs)
+            .where(
+              'type',
+              whereIn: topSpecs.length > 10
+                  ? topSpecs.sublist(0, 10)
+                  : topSpecs,
+            )
             .limit(80)
             .get();
         for (final doc in reqs.docs) {
           final otherUid = doc.data()['userId'] as String?;
           if (otherUid == null || otherUid == uid) continue;
           final at = RecencyWeight.parseTime(doc.data()['createdAt']);
-          final w = RecencyWeight.apply(3.0, at, halfLifeDays: RecencyWeight.hlConsultation);
+          final w = RecencyWeight.apply(
+            3.0,
+            at,
+            halfLifeDays: RecencyWeight.hlConsultation,
+          );
           similarUsers[otherUid] = (similarUsers[otherUid] ?? 0) + w;
         }
       } catch (_) {
@@ -218,7 +237,11 @@ class RecommendationService {
             final otherUid = doc.data()['userId'] as String?;
             if (otherUid == null || otherUid == uid) continue;
             final at = RecencyWeight.parseTime(doc.data()['createdAt']);
-            final w = RecencyWeight.apply(2.0, at, halfLifeDays: RecencyWeight.hlConsultation);
+            final w = RecencyWeight.apply(
+              2.0,
+              at,
+              halfLifeDays: RecencyWeight.hlConsultation,
+            );
             similarUsers[otherUid] = (similarUsers[otherUid] ?? 0) + w;
           }
         }
@@ -234,14 +257,21 @@ class RecommendationService {
     for (final entry in ranked.take(20)) {
       final otherUid = entry.key;
 
-      final favs =
-          await _db.collection('users').doc(otherUid).collection('favorites').get();
+      final favs = await _db
+          .collection('users')
+          .doc(otherUid)
+          .collection('favorites')
+          .get();
       for (final f in favs.docs) {
         final id = f.id;
         if (excludeIds.contains(id)) continue;
         final lawyer = lawyersById[id];
         if (lawyer != null &&
-            _lawyerMatchesUserInterests(lawyer, profile, strictForCollaborative: true)) {
+            _lawyerMatchesUserInterests(
+              lawyer,
+              profile,
+              strictForCollaborative: true,
+            )) {
           candidates.add(id);
         }
       }
@@ -256,7 +286,11 @@ class RecommendationService {
         if (lid == null || excludeIds.contains(lid)) continue;
         final lawyer = lawyersById[lid];
         if (lawyer != null &&
-            _lawyerMatchesUserInterests(lawyer, profile, strictForCollaborative: true)) {
+            _lawyerMatchesUserInterests(
+              lawyer,
+              profile,
+              strictForCollaborative: true,
+            )) {
           candidates.add(lid);
         }
       }
@@ -274,7 +308,10 @@ class RecommendationService {
     final maxSpec = profile.specialityScores.values.fold<double>(0, math.max);
     final maxWilaya = profile.wilayaScores.values.fold<double>(0, math.max);
 
-    final specAffinity = _rawSpecialityAffinity(lawyer, profile.specialityScores);
+    final specAffinity = _rawSpecialityAffinity(
+      lawyer,
+      profile.specialityScores,
+    );
     final wilayaAffinity = _rawWilayaAffinity(lawyer, profile.wilayaScores);
 
     final double contentSpec = personalizedMode && maxSpec > 0
@@ -286,9 +323,10 @@ class RecommendationService {
     final double contentScore = contentSpec + contentWilaya;
 
     final bool fromSimilarUsers = collaborativeIds.contains(lawyer.uid);
-    final double collaborativeScore = fromSimilarUsers ? 20.0 : 0.0;
+    final double collaborativeScore = fromSimilarUsers ? 30.0 : 0.0;
 
-    final double qualityScore = (lawyer.finalScore.clamp(0.0, 100.0) / 100.0) * 15.0 +
+    final double qualityScore =
+        (lawyer.finalScore.clamp(0.0, 100.0) / 100.0) * 15.0 +
         (lawyer.rating.clamp(0.0, 5.0) / 5.0) * 10.0 +
         math.min(lawyer.reviewCount / 20.0, 1.0) * 5.0;
 
@@ -385,7 +423,10 @@ class RecommendationService {
       try {
         final uid2 = _uid;
         if (uid2 != null) {
-          final profile2 = await _profileBuilder.build(uid2, lawyersById: lawyersMap);
+          final profile2 = await _profileBuilder.build(
+            uid2,
+            lawyersById: lawyersMap,
+          );
           safeExclude = profile2.excludedLawyerIds;
         }
       } catch (_) {}
@@ -400,12 +441,14 @@ class RecommendationService {
   ) {
     final pool = lawyers.where((l) => !exclude.contains(l.uid)).toList()
       ..sort((a, b) {
-        if (b.finalScore != a.finalScore) return b.finalScore.compareTo(a.finalScore);
+        if (b.finalScore != a.finalScore)
+          return b.finalScore.compareTo(a.finalScore);
         return b.rating.compareTo(a.rating);
       });
 
     return pool.take(limit).map((lawyer) {
-      final double q = (lawyer.finalScore.clamp(0.0, 100.0) / 100.0) * 15.0 +
+      final double q =
+          (lawyer.finalScore.clamp(0.0, 100.0) / 100.0) * 15.0 +
           (lawyer.rating.clamp(0.0, 5.0) / 5.0) * 10.0 +
           math.min(lawyer.reviewCount / 20.0, 1.0) * 5.0;
       return LawyerRecommendation(
@@ -428,9 +471,9 @@ class RecommendationService {
       };
 
   static Color reasonColor(RecommendationReason reason) => switch (reason) {
-        RecommendationReason.matchSearch => const Color(0xFF0052D4),
-        RecommendationReason.similarUsers => const Color(0xFF7C3AED),
-        RecommendationReason.inYourArea => const Color(0xFF059669),
-        RecommendationReason.highRating => const Color(0xFFF59E0B),
-      };
+    RecommendationReason.matchSearch => const Color(0xFF0052D4),
+    RecommendationReason.similarUsers => const Color(0xFF7C3AED),
+    RecommendationReason.inYourArea => const Color(0xFF059669),
+    RecommendationReason.highRating => const Color(0xFFF59E0B),
+  };
 }
