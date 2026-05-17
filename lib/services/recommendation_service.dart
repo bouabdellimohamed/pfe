@@ -191,7 +191,7 @@ class RecommendationService {
           final otherUid = doc.data()['userId'] as String?;
           if (otherUid == null || otherUid == uid) continue;
           final at = RecencyWeight.parseTime(doc.data()['createdAt']);
-          final w = RecencyWeight.apply(3.0, at);
+          final w = RecencyWeight.apply(3.0, at, halfLifeDays: RecencyWeight.hlConsultation);
           similarUsers[otherUid] = (similarUsers[otherUid] ?? 0) + w;
         }
 
@@ -204,7 +204,7 @@ class RecommendationService {
           final otherUid = doc.data()['userId'] as String?;
           if (otherUid == null || otherUid == uid) continue;
           final at = RecencyWeight.parseTime(doc.data()['createdAt']);
-          final w = RecencyWeight.apply(3.0, at);
+          final w = RecencyWeight.apply(3.0, at, halfLifeDays: RecencyWeight.hlConsultation);
           similarUsers[otherUid] = (similarUsers[otherUid] ?? 0) + w;
         }
       } catch (_) {
@@ -218,7 +218,7 @@ class RecommendationService {
             final otherUid = doc.data()['userId'] as String?;
             if (otherUid == null || otherUid == uid) continue;
             final at = RecencyWeight.parseTime(doc.data()['createdAt']);
-            final w = RecencyWeight.apply(2.0, at);
+            final w = RecencyWeight.apply(2.0, at, halfLifeDays: RecencyWeight.hlConsultation);
             similarUsers[otherUid] = (similarUsers[otherUid] ?? 0) + w;
           }
         }
@@ -379,7 +379,17 @@ class RecommendationService {
       return _qualityFallback(lawyersMap.values, exclude, limit);
     } catch (_) {
       final lawyersMap = await _loadLawyersMap();
-      return _qualityFallback(lawyersMap.values, {}, limit);
+      // إعادة بناء الـ excludedIds من الـ dismissals و favorites و chats
+      // حتى لا يظهر محامٍ مرفوض أو معروف في الـ fallback.
+      Set<String> safeExclude = {};
+      try {
+        final uid2 = _uid;
+        if (uid2 != null) {
+          final profile2 = await _profileBuilder.build(uid2, lawyersById: lawyersMap);
+          safeExclude = profile2.excludedLawyerIds;
+        }
+      } catch (_) {}
+      return _qualityFallback(lawyersMap.values, safeExclude, limit);
     }
   }
 
