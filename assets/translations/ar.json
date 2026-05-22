@@ -627,6 +627,7 @@
   "report_submit_btn": "إرسال التبليغ",
   "report_submitted": "تم إرسال التبليغ. سيقوم فريقنا بمراجعة بلاغك.",
   "report_consultation": "الإبلاغ عن هذا الرأي",
+  "report_already_submitted": "لقد قمت بالتبليغ عن هذا المستخدم مسبقاً",
   "view_client_profile": "عرض ملف العميل",
   "content_moderation_blocked": "ردك يحتوي على محتوى غير لائق. يرجى إعادة الصياغة.",
   "documents_section": "المستندات والشهادات",

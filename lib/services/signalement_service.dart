@@ -30,6 +30,17 @@ class SignalementService {
     String? relatedContentId, // ID of consultation/request if applicable
     String? relatedContentType, // 'consultation' | 'request'
   }) async {
+    // ✅ Check if the reporter has already reported this user
+    final existingReport = await _firestore.collection('reports')
+        .where('reporterUserId', isEqualTo: reporterUserId)
+        .where('reportedUserId', isEqualTo: reportedUserId)
+        .limit(1)
+        .get();
+        
+    if (existingReport.docs.isNotEmpty) {
+      throw 'report_already_submitted'.tr();
+    }
+
     await _firestore.collection('reports').add({
       'reporterUserId': reporterUserId,
       'reportedUserId': reportedUserId,

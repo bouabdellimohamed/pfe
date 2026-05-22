@@ -551,6 +551,7 @@
   "report_submit_btn": "Envoyer le signalement",
   "report_submitted": "Signalement envoyé. Notre équipe va examiner votre rapport.",
   "report_consultation": "Signaler cet avis",
+  "report_already_submitted": "Vous avez déjà signalé cet utilisateur",
   "view_client_profile": "Voir le profil du client",
   "content_moderation_blocked": "Votre réponse contient du contenu inapproprié. Veuillez reformuler.",
   "years_suffix": "ans",
