@@ -572,15 +572,6 @@ class _DirectSearchScreenState extends State<DirectSearchScreen> with SingleTick
                         ),
                       ),
                       const Spacer(),
-                      if (lawyer.finalScore > 0)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                          child: Text(
-                            "pts".tr(namedArgs: {'count': lawyer.finalScore.toStringAsFixed(0)}),
-                            style: TextStyle(color: primaryColor, fontSize: 11, fontWeight: FontWeight.w700),
-                          ),
-                        ),
                     ],
                   ),
                 ],

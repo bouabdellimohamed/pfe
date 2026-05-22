@@ -31,7 +31,15 @@ class _LawyerSearchByNameScreenState extends State<LawyerSearchByNameScreen> {
           .collection('lawyers')
           .get();
       
-      final lawyers = snap.docs.map((d) => LawyerModel.fromMap(d.data())).toList();
+      final lawyers = <LawyerModel>[];
+      for (final d in snap.docs) {
+        final data = d.data();
+        if (data['status'] == 'approved' || data['status'] == null) {
+          try {
+            lawyers.add(LawyerModel.fromMap({...data, 'uid': d.id}));
+          } catch (_) {}
+        }
+      }
       
       if (mounted) {
         setState(() {

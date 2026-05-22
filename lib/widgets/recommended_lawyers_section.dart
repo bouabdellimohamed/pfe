@@ -222,21 +222,6 @@ class _RecommendationCard extends StatelessWidget {
                   backgroundColor: reasonColor,
                 ),
                 const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: reasonColor.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    '${item.matchPercent}%',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w900,
-                      color: reasonColor,
-                    ),
-                  ),
-                ),
                 const SizedBox(width: 4),
                 // ── "لا يهمني" button ─────────────────────────────────────
                 GestureDetector(

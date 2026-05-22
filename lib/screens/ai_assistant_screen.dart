@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../theme/app_theme.dart';
 import 'lawyers_result_screen.dart';
+import 'direct_search_screen.dart';
 import '../api_keys.dart';
 import '../services/gemini_service.dart';
 
@@ -136,7 +137,12 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
       }
 
       // Add user message to history
-      _history.add({'role': 'user', 'parts': [{'text': message}]});
+      _history.add({
+        'role': 'user',
+        'parts': [
+          {'text': message}
+        ]
+      });
 
       // Build system prompt
       final systemPrompt = '''
@@ -161,8 +167,21 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
 
       // Build contents with system prompt + full conversation history
       final contents = [
-        {'role': 'user', 'parts': [{'text': systemPrompt}]},
-        {'role': 'model', 'parts': [{'text': '{"advice": "مفهوم، سأساعدك كمستشار قانوني جزائري.", "domain": "HORS_SUJET"}'}]},
+        {
+          'role': 'user',
+          'parts': [
+            {'text': systemPrompt}
+          ]
+        },
+        {
+          'role': 'model',
+          'parts': [
+            {
+              'text':
+                  '{"advice": "مفهوم، سأساعدك كمستشار قانوني جزائري.", "domain": "HORS_SUJET"}'
+            }
+          ]
+        },
         ..._history,
       ];
 
@@ -182,7 +201,12 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
           .trim();
 
       // Add model response to history
-      _history.add({'role': 'model', 'parts': [{'text': rawText}]});
+      _history.add({
+        'role': 'model',
+        'parts': [
+          {'text': rawText}
+        ]
+      });
 
       // Parse JSON response
       final startIndex = rawText.indexOf('{');
@@ -192,7 +216,8 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
 
       if (startIndex != -1 && endIndex != -1) {
         try {
-          final parsed = jsonDecode(rawText.substring(startIndex, endIndex + 1));
+          final parsed =
+              jsonDecode(rawText.substring(startIndex, endIndex + 1));
           advice = parsed['advice']?.toString().trim();
           domain = parsed['domain']?.toString().trim();
         } catch (_) {
@@ -216,7 +241,8 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
       setState(() {
         _isLoading = false;
         _messages.add(_ChatMessage(
-          text: advice ?? 'ai_error_msg'.tr(namedArgs: {'error': 'parse error'}),
+          text:
+              advice ?? 'ai_error_msg'.tr(namedArgs: {'error': 'parse error'}),
           isUser: false,
           timestamp: DateTime.now(),
           resultDomain: matchedDomain,
@@ -328,7 +354,8 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => LawyersResultScreen(speciality: domain),
+                        builder: (_) =>
+                            DirectSearchScreen(preselectedSpeciality: domain),
                       ),
                     );
                   },
@@ -615,8 +642,8 @@ class _MessageBubble extends StatelessWidget {
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: () => onViewLawyers(message.resultDomain!),
-                      icon: const Icon(Icons.people_outline_rounded, size: 16),
-                      label: Text('view_recommended_lawyers'.tr()),
+                      icon: const Icon(Icons.location_on_rounded, size: 16),
+                      label: Text('search'.tr()),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(

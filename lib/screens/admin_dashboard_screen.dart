@@ -648,14 +648,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 color: AppColors.primary.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(12)),
             child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   _statChip(Icons.people_rounded,
                       '${lawyerDocs.length} avocats', AppColors.primary),
-                  _statChip(
-                      Icons.verified_rounded,
-                      '${lawyerDocs.where((d) => (d.data() as Map)['isVerified'] == true).length} vérifiés',
-                      Colors.green),
                 ]),
           ),
           Expanded(

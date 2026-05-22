@@ -81,12 +81,17 @@ class _AdminContentScreenState extends State<AdminContentScreen>
 
   Widget _buildPubsTab() {
     return StreamBuilder<QuerySnapshot>(
-      stream: _firestore.collection('demands').orderBy('createdAt', descending: true).snapshots(),
+      stream: _firestore.collection('requests').orderBy('createdAt', descending: true).snapshots(),
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-        final docs = snap.data?.docs ?? [];
+        final allDocs = snap.data?.docs ?? [];
+        final docs = allDocs.where((d) {
+          final data = d.data() as Map<String, dynamic>;
+          return data.containsKey('title') || data.containsKey('description') || data.containsKey('affaireType');
+        }).toList();
+        
         if (docs.isEmpty) {
           return _emptyState(Icons.campaign_outlined, 'Aucune publication');
         }
@@ -130,7 +135,7 @@ class _AdminContentScreenState extends State<AdminContentScreen>
                     ),
                     IconButton(
                       icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
-                      onPressed: () => _confirmDelete('demands', id, title),
+                      onPressed: () => _confirmDelete('requests', id, title),
                       tooltip: 'Supprimer',
                     ),
                   ]),
@@ -163,7 +168,12 @@ class _AdminContentScreenState extends State<AdminContentScreen>
         if (snap.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-        final docs = snap.data?.docs ?? [];
+        final allDocs = snap.data?.docs ?? [];
+        final docs = allDocs.where((d) {
+          final data = d.data() as Map<String, dynamic>;
+          return data.containsKey('question');
+        }).toList();
+        
         if (docs.isEmpty) {
           return _emptyState(Icons.question_answer_outlined, 'Aucune consultation');
         }
